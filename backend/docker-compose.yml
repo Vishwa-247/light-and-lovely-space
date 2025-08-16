@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Database
+  mongodb:
+    image: mongo:latest
+    container_name: studymate_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: studymate_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - studymate_network
+
+  # Redis for inter-agent communication
+  redis:
+    image: redis:alpine
+    container_name: studymate_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - studymate_network
+
+  # API Gateway
+  api-gateway:
+    build: 
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: studymate_gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - COURSE_GENERATION_URL=http://course-generation:8001
+      - INTERVIEW_COACH_URL=http://interview-coach:8002
+      - CHAT_MENTOR_URL=http://chat-mentor:8003
+      - PROGRESS_ANALYST_URL=http://progress-analyst:8004
+      - RESUME_ANALYZER_URL=http://resume-analyzer:8005
+      - EXAM_PREP_URL=http://exam-prep:8006
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - studymate_network
+
+  # Course Generation Agent
+  course-generation:
+    build:
+      context: ./agents/course-generation
+      dockerfile: Dockerfile
+    container_name: studymate_course_generation
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - studymate_network
+
+  # Interview Coach Agent
+  interview-coach:
+    build:
+      context: ./agents/interview-coach
+      dockerfile: Dockerfile
+    container_name: studymate_interview_coach
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - studymate_network
+
+  # Chat Mentor Agent (placeholder)
+  chat-mentor:
+    build:
+      context: ./agents/chat-mentor
+      dockerfile: Dockerfile
+    container_name: studymate_chat_mentor
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - studymate_network
+
+  # Progress Analyst Agent (placeholder)
+  progress-analyst:
+    build:
+      context: ./agents/progress-analyst
+      dockerfile: Dockerfile
+    container_name: studymate_progress_analyst
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - studymate_network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  studymate_network:
+    driver: bridge
