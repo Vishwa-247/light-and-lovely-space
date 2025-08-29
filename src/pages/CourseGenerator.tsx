@@ -8,7 +8,7 @@ import CourseForm from "@/components/course/CourseForm";
 import HowItWorks from "@/components/course/HowItWorks";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import ContentGenerationStatus from "@/components/course/ContentGenerationStatus";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import { toast as sonnerToast } from "sonner";
 import { useCourseGeneration } from "@/hooks/useCourseGeneration";
 import { CourseType } from "@/types";

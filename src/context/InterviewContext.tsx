@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from "r
 import { InterviewQuestionType, MockInterviewType, CourseType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 
 // Define types for the interview state
 export enum InterviewStage {

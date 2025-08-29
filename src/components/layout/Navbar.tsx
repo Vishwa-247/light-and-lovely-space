@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, User } from "lucide-react";
 import Container from "../ui/Container";
 import GlassMorphism from "../ui/GlassMorphism";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
 
   const navLinks = [
@@ -51,26 +51,42 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleSignOut = async () => {
-    await signOut();
-    // Navigate to index page after logout
-    navigate('/');
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
-  const getInitials = (name: string) => {
-    if (!name) return "U";
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U';
     return name
-      .split(" ")
-      .map(part => part[0])
-      .join("")
+      .split(' ')
+      .map(n => n[0])
+      .join('')
       .toUpperCase()
       .slice(0, 2);
   };
+
+  if (loading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <Container>
+          <div className="flex items-center justify-between h-18 py-4">
+            <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
+          </div>
+        </Container>
+      </header>
+    );
+  }
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? "py-3" : "py-4"
-      } bg-white/90 dark:bg-background/90 backdrop-blur-sm border-b border-border/40 shadow-sm`}
+      } bg-background/90 backdrop-blur-md border-b border-border/50`}
     >
       <Container>
         <div className="flex items-center justify-between h-18">

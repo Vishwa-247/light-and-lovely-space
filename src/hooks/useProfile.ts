@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import { UserProfile, ProfileFormData } from "@/types/profile";
 import { profileService } from "@/api/services/profileService";
 import { useToast } from "@/hooks/use-toast";

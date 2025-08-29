@@ -1,26 +1,25 @@
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Layout from "./components/layout/Layout";
-import CourseDetail from "./pages/CourseDetail";
-import CourseGenerator from "./pages/CourseGenerator";
-import Dashboard from "./pages/Dashboard";
-import Index from "./pages/Index";
-import MockInterview from "./pages/MockInterview";
-import NotFound from "./pages/NotFound";
-
-import { AuthProvider } from "./context/AuthContext";
-import { InterviewProvider } from "./context/InterviewContext";
-import Auth from "./pages/Auth";
-import CompanyProblems from "./pages/CompanyProblems";
-import DSASheet from "./pages/DSASheet";
-import DSATopic from "./pages/DSATopic";
-import FutureIntegrations from "./pages/FutureIntegrations";
-import InterviewResult from "./pages/InterviewResult";
-import ProfileBuilder from "./pages/ProfileBuilder";
-import ResumeAnalyzer from "./pages/ResumeAnalyzer";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import Layout from "@/components/layout/Layout";
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import Dashboard from "@/pages/Dashboard";
+import CourseGenerator from "@/pages/CourseGenerator";
+import CourseDetail from "@/pages/CourseDetail";
+import Courses from "@/pages/Courses";
+import DSASheet from "@/pages/DSASheet";
+import DSATopic from "@/pages/DSATopic";
+import CompanyProblems from "@/pages/CompanyProblems";
+import MockInterview from "@/pages/MockInterview";
+import InterviewResult from "@/pages/InterviewResult";
+import ProfileBuilder from "@/pages/ProfileBuilder";
+import ResumeAnalyzer from "@/pages/ResumeAnalyzer";
+import NotFound from "@/pages/NotFound";
+import FutureIntegrations from "@/pages/FutureIntegrations";
+import { InterviewProvider } from "@/context/InterviewContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,115 +33,106 @@ const queryClient = new QueryClient({
 const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+      <TooltipProvider>
+        <div className="min-h-screen bg-background">
           <Routes>
-            <Route path="/" element={
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Layout><Index /></Layout>} />
+            <Route path="dsa-sheet" element={
               <Layout>
-                <Index />
+                <ProtectedRoute>
+                  <DSASheet />
+                </ProtectedRoute>
               </Layout>
             } />
-            <Route path="/auth" element={<Auth />} />
-
-            <Route
-              path="/dsa-sheet"
-              element={
-                <Layout>
-                  <DSASheet />
-                </Layout>
-              }
-            />
-            <Route
-              path="/dsa-sheet/topic/:topicId"
-              element={
-                <Layout>
+            <Route path="dsa-sheet/topic/:topicId" element={
+              <Layout>
+                <ProtectedRoute>
                   <DSATopic />
-                </Layout>
-              }
-            />
-            <Route
-              path="/dsa-sheet/company/:companyId"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="dsa-sheet/company/:companyId" element={
+              <Layout>
+                <ProtectedRoute>
                   <CompanyProblems />
-                </Layout>
-              }
-            />
-            <Route
-              path="/future-integrations"
-              element={
-                <Layout>
-                  <FutureIntegrations />
-                </Layout>
-              }
-            />
-            <Route
-              path="/course-generator"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="course-generator" element={
+              <Layout>
+                <ProtectedRoute>
                   <CourseGenerator />
-                </Layout>
-              }
-            />
-            <Route
-              path="/course/:id"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="course/:id" element={
+              <Layout>
+                <ProtectedRoute>
                   <CourseDetail />
-                </Layout>
-              }
-            />
-            <Route
-              path="/mock-interview"
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="courses" element={
+              <Layout>
+                <ProtectedRoute>
+                  <Courses />
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route 
+              path="mock-interview" 
               element={
                 <Layout>
-                  <InterviewProvider>
-                    <MockInterview />
-                  </InterviewProvider>
+                  <ProtectedRoute>
+                    <InterviewProvider>
+                      <MockInterview />
+                    </InterviewProvider>
+                  </ProtectedRoute>
                 </Layout>
-              }
+              } 
             />
-            <Route
-              path="/interview-result/:id"
-              element={
-                <Layout>
+            <Route path="interview-result/:id" element={
+              <Layout>
+                <ProtectedRoute>
                   <InterviewResult />
-                </Layout>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="dashboard" element={
+              <Layout>
+                <ProtectedRoute>
                   <Dashboard />
-                </Layout>
-              }
-            />
-            <Route
-              path="/profile-builder"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="profile-builder" element={
+              <Layout>
+                <ProtectedRoute>
                   <ProfileBuilder />
-                </Layout>
-              }
-            />
-            <Route
-              path="/resume-analyzer"
-              element={
-                <Layout>
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="resume-analyzer" element={
+              <Layout>
+                <ProtectedRoute>
                   <ResumeAnalyzer />
-                </Layout>
-              }
-            />
-            {/* API proxy route for future Flask integration */}
-            <Route path="/api/*" element={<div>API Proxy</div>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="api/*" element={<div>API Proxy</div>} />
+            <Route path="future-integrations" element={
+              <Layout>
+                <ProtectedRoute>
+                  <FutureIntegrations />
+                </ProtectedRoute>
+              </Layout>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </TooltipProvider>
-      </AuthProvider>
+          <Toaster />
+        </div>
+      </TooltipProvider>
     </QueryClientProvider>
   </BrowserRouter>
 );

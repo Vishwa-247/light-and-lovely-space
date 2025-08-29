@@ -9,7 +9,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import InlineFeedback from "@/components/course/InlineFeedback";
 import RouteFilters from "@/components/dsa/RouteFilters";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import { dsaService } from "@/api/services/dsaService";
 import { toast } from "sonner";
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Book, Video, Medal, MessageSquare, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import Container from "@/components/ui/Container";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import Chatbot from "@/components/Chatbot";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";

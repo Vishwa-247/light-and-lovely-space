@@ -9,7 +9,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lu
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import DocumentPreview from "./DocumentPreview";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ResumeUpload() {
   const { profile, updateProfile, uploadResume, isLoading } = useProfile();

@@ -12,7 +12,7 @@ import { companies } from "@/data/companyProblems";
 import DSAFilters from "@/components/dsa/DSAFilters";
 import { useDSAFilters } from "@/hooks/useDSAFilters";
 import { dsaService } from "@/api/services/dsaService";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from "sonner";
 
 const DSASheet = () => {
