@@ -12,6 +12,7 @@ import Container from "@/components/ui/Container";
 import { useToast } from "@/hooks/use-toast";
 import { ChapterType, CourseType, FlashcardType, McqType, QnaType } from "@/types";
 import NotebookPanel from "@/components/course/NotebookPanel";
+import CourseLayout from "@/components/course/CourseLayout";
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -588,31 +589,12 @@ Implementing these optimization techniques will help you build React application
   };
 
   return (
-    <Container className="py-12">
-      <div className="mb-6">
-        <Link to="/dashboard" className="inline-flex items-center text-sm text-muted-foreground mb-6 hover:text-primary transition-colors">
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to Dashboard
-        </Link>
-        
-        <div className="flex flex-wrap gap-2 mb-3">
-          <Badge variant="outline" className="px-2 py-1">
-            {formatLabel(course.purpose)}
-          </Badge>
-          <Badge variant="outline" className="px-2 py-1">
-            {formatLabel(course.difficulty)}
-          </Badge>
-        </div>
-        
-        <h1 className="text-3xl font-bold tracking-tight mb-4">{course.title}</h1>
-        
-        {course.summary && (
-          <p className="text-muted-foreground max-w-4xl mb-8">
-            {course.summary}
-          </p>
-        )}
-      </div>
-      
+    <CourseLayout
+      courseTitle={course?.title || ""}
+      chapterName={chapters[0]?.title || "React Component Patterns"}
+      contentSummary="Learn advanced React patterns including compound components, render props, and HOCs for building reusable and maintainable code."
+      progress={75}
+    >
       <Tabs 
         defaultValue="chapters" 
         value={activeTab}
@@ -772,7 +754,7 @@ Implementing these optimization techniques will help you build React application
           </Accordion>
         </TabsContent>
       </Tabs>
-    </Container>
+    </CourseLayout>
   );
 };
 

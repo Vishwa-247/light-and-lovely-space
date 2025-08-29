@@ -76,7 +76,7 @@ const Index = () => {
         <Container>
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h1 className="text-gradient animate-fade-in font-bold mb-6">
-              ByteRover: AI-Powered Career Development Platform
+              StudyMate: AI-Powered Career Development Platform
             </h1>
             <p className="text-xl text-muted-foreground animate-fade-up mb-8">
               Master DSA problems, generate custom courses, practice mock interviews, 

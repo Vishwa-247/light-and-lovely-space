@@ -23,14 +23,7 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Resume Analyzer", href: "/resume-analyzer" },
-    { name: "DSA Sheet", href: "/dsa-sheet" },
-    { name: "Learn", href: "/course-generator" },
-    { name: "Interview", href: "/mock-interview" },
-    { name: "Dashboard", href: "/dashboard" },
-  ];
+  const navLinks: any[] = [];
 
   useEffect(() => {
     const handleScroll = () => {
