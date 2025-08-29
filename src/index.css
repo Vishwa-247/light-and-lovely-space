@@ -134,7 +134,7 @@
   }
   
   .button-glow:hover {
-    box-shadow: 0 0 20px 5px rgba(var(--primary-rgb), 0.35);
+    box-shadow: 0 0 20px 5px hsl(var(--primary) / 0.35);
     transition: all 0.3s ease;
   }
   
