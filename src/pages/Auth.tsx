@@ -216,14 +216,14 @@ export default function Auth() {
                           </div>
                         </div>
                         
-                         <Button 
+                        <Button 
                           type="button" 
                           variant="outline" 
-                          className="w-full" 
+                          className="w-full bg-green-50 hover:bg-green-100 border-green-200 text-green-700" 
                           onClick={triggerDemoLogin}
                           disabled={isLoading}
                         >
-                          {isLoading ? "Logging in..." : "Quick Demo Login"}
+                          {isLoading ? "Logging in..." : "🚀 Quick Demo Login (No Password Required)"}
                         </Button>
                         
                         <Button 

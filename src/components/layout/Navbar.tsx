@@ -23,7 +23,14 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const navLinks: any[] = [];
+  const navLinks = [
+    { name: "Home", href: "/" },
+    { name: "Resume Analyzer", href: "/resume-analyzer" },
+    { name: "DSA Sheet", href: "/dsa-sheet" },
+    { name: "Learn", href: "/course-generator" },
+    { name: "Interview", href: "/mock-interview" },
+    { name: "Dashboard", href: "/dashboard" },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,22 +81,24 @@ const Navbar = () => {
             <span className="text-gradient">StudyMate</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.href}
-                className={`text-sm font-medium transition-all duration-200 hover:text-primary ${
-                  location.pathname === link.href
-                    ? "text-primary"
-                    : "text-foreground/80"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-          </nav>
+          {/* Desktop Navigation - Only show when user is logged in */}
+          {user && (
+            <nav className="hidden md:flex items-center space-x-8">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className={`text-sm font-medium transition-all duration-200 hover:text-primary ${
+                    location.pathname === link.href
+                      ? "text-primary"
+                      : "text-foreground/80"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Auth Buttons - Desktop */}
           <div className="hidden md:flex items-center space-x-4">
@@ -158,21 +167,23 @@ const Navbar = () => {
       {/* Mobile Navigation */}
       {isMenuOpen && (
         <div className="md:hidden fixed inset-x-0 top-[6rem] bg-background/95 backdrop-blur-sm h-screen z-50 p-6 flex flex-col space-y-8 border-t border-border/40">
-          <nav className="flex flex-col space-y-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.href}
-                className={`text-lg font-medium transition-all duration-200 ${
-                  location.pathname === link.href
-                    ? "text-primary"
-                    : "text-foreground/80"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-          </nav>
+          {user && (
+            <nav className="flex flex-col space-y-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className={`text-lg font-medium transition-all duration-200 ${
+                    location.pathname === link.href
+                      ? "text-primary"
+                      : "text-foreground/80"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+          )}
           <div className="flex flex-col space-y-4 pt-4 border-t border-border">
             {user ? (
               <>
