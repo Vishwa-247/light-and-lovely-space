@@ -15,7 +15,7 @@ export const useProfile = () => {
   const initializeProfile = (): UserProfile => ({
     userId: user?.id || "",
     personalInfo: {
-      fullName: user?.name || "",
+      fullName: user?.user_metadata?.full_name || "",
       email: user?.email || "",
       phone: "",
       location: "",
