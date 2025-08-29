@@ -75,9 +75,9 @@ const Index = () => {
         <div className="absolute inset-0 -z-10 bg-mesh-1 opacity-30"></div>
         
         {/* Floating Stickers */}
-        <FloatingBrain className="absolute top-20 left-10 hidden lg:block opacity-20" />
-        <FloatingRocket className="absolute top-32 right-16 hidden lg:block opacity-20" />
-        <FloatingGear className="absolute bottom-20 left-20 hidden lg:block opacity-15" />
+        <FloatingBrain className="absolute top-20 left-10 hidden lg:block opacity-70" />
+        <FloatingRocket className="absolute top-32 right-16 hidden lg:block opacity-60" />
+        <FloatingGear className="absolute bottom-20 left-20 hidden lg:block opacity-50" />
         
         <Container>
           <div className="max-w-3xl mx-auto text-center mb-12">
@@ -107,8 +107,8 @@ const Index = () => {
       {/* Platform Overview Section */}
       <section className="py-16 bg-muted/30 relative overflow-hidden">
         {/* More floating stickers */}
-        <FloatingBook className="absolute top-10 right-10 hidden lg:block opacity-20" />
-        <FloatingGear className="absolute bottom-10 left-32 hidden lg:block opacity-15" />
+        <FloatingBook className="absolute top-10 right-10 hidden lg:block opacity-60" />
+        <FloatingGear className="absolute bottom-10 left-32 hidden lg:block opacity-50" />
         
         <Container>
           <div className="text-center mb-16">
@@ -214,8 +214,8 @@ const Index = () => {
       {/* Features Section */}
       <section className="py-20 bg-background relative overflow-hidden">
         {/* Additional floating elements */}
-        <FloatingBrain className="absolute top-16 right-20 hidden lg:block opacity-10" />
-        <FloatingRocket className="absolute bottom-16 left-16 hidden lg:block opacity-15" />
+        <FloatingBrain className="absolute top-16 right-20 hidden lg:block opacity-40" />
+        <FloatingRocket className="absolute bottom-16 left-16 hidden lg:block opacity-50" />
         
         <Container>
           <div className="text-center mb-16">

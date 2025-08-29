@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { StudySticker } from '@/components/ui/AnimatedStickers';
+import { StudySticker, FloatingBrain, FloatingRocket, FloatingBook, InterviewSticker } from '@/components/ui/AnimatedStickers';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -114,8 +114,14 @@ export default function Auth() {
 
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Animated Sticker */}
-        <StudySticker className="absolute -left-20 top-1/2 transform -translate-y-1/2 hidden lg:block opacity-30" />
+        {/* Animated Stickers - Left Side */}
+        <StudySticker className="absolute left-4 top-1/4 transform -translate-y-1/2 hidden xl:block opacity-40 scale-75" />
+        <FloatingBrain className="absolute left-8 bottom-20 hidden lg:block opacity-30" />
+        
+        {/* Animated Stickers - Right Side */}
+        <InterviewSticker className="absolute right-4 top-1/3 transform -translate-y-1/2 hidden xl:block opacity-35 scale-75" />
+        <FloatingRocket className="absolute right-8 bottom-24 hidden lg:block opacity-40" />
+        <FloatingBook className="absolute right-12 top-16 hidden lg:block opacity-30" />
         
         <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
