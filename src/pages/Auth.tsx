@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import { StudySticker } from '@/components/ui/AnimatedStickers';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -112,8 +113,11 @@ export default function Auth() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated Sticker */}
+        <StudySticker className="absolute -left-20 top-1/2 transform -translate-y-1/2 hidden lg:block opacity-30" />
+        
+        <div className="w-full max-w-md relative z-10">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               StudyMate

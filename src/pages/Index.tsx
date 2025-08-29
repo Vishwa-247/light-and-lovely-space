@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Container from "@/components/ui/Container";
 import GlassMorphism from "@/components/ui/GlassMorphism";
 import { ArrowRight, BookOpen, Video, Sparkles, Users, BookMarked, FlaskConical, Lightbulb, Megaphone } from "lucide-react";
+import { FloatingBrain, FloatingRocket, FloatingBook, FloatingGear } from "@/components/ui/AnimatedStickers";
 
 const Index = () => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
@@ -73,6 +74,11 @@ const Index = () => {
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background to-muted/30"></div>
         <div className="absolute inset-0 -z-10 bg-mesh-1 opacity-30"></div>
         
+        {/* Floating Stickers */}
+        <FloatingBrain className="absolute top-20 left-10 hidden lg:block opacity-20" />
+        <FloatingRocket className="absolute top-32 right-16 hidden lg:block opacity-20" />
+        <FloatingGear className="absolute bottom-20 left-20 hidden lg:block opacity-15" />
+        
         <Container>
           <div className="max-w-3xl mx-auto text-center mb-12">
             <h1 className="text-gradient animate-fade-in font-bold mb-6">
@@ -99,7 +105,11 @@ const Index = () => {
       </section>
       
       {/* Platform Overview Section */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-16 bg-muted/30 relative overflow-hidden">
+        {/* More floating stickers */}
+        <FloatingBook className="absolute top-10 right-10 hidden lg:block opacity-20" />
+        <FloatingGear className="absolute bottom-10 left-32 hidden lg:block opacity-15" />
+        
         <Container>
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Our Platform</h2>
@@ -202,7 +212,11 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-background relative overflow-hidden">
+        {/* Additional floating elements */}
+        <FloatingBrain className="absolute top-16 right-20 hidden lg:block opacity-10" />
+        <FloatingRocket className="absolute bottom-16 left-16 hidden lg:block opacity-15" />
+        
         <Container>
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Platform Features</h2>
