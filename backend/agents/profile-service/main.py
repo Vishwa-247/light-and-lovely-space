@@ -169,7 +169,7 @@ async def parse_resume_with_groq(resume_text: str) -> Dict[str, Any]:
         """
 
         response = groq_client.chat.completions.create(
-            model="meta-llama/llama-3.1-70b-versatile",
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that extracts structured data from resumes. Always respond with valid JSON only."},
                 {"role": "user", "content": prompt}
@@ -178,8 +178,27 @@ async def parse_resume_with_groq(resume_text: str) -> Dict[str, Any]:
             max_tokens=2000
         )
 
-        parsed_data = json.loads(response.choices[0].message.content)
-        return parsed_data
+        try:
+            content = response.choices[0].message.content.strip()
+            if not content:
+                raise ValueError("Empty response from Groq")
+            parsed_data = json.loads(content)
+            return parsed_data
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Failed to parse Groq response: {str(e)}")
+            # Return fallback data structure
+            return {
+                "personalInfo": {},
+                "education": [],
+                "experience": [],
+                "projects": [],
+                "skills": [],
+                "certifications": [],
+                "achievements": [],
+                "languages": [],
+                "interests": [],
+                "summary": ""
+            }
 
     except Exception as e:
         logger.error(f"Error parsing resume with Groq: {str(e)}")
@@ -231,10 +250,13 @@ async def extract_profile(
 
             # Upload file to Supabase Storage
             file_path = f"{user_id}/{resume.filename}"
-            storage_response = supabase.storage.from_("resume-files").upload(file_path, content)
-            
-            if storage_response.error:
-                logger.error(f"Storage upload error: {storage_response.error}")
+            try:
+                storage_response = supabase.storage.from_("resume-files").upload(file_path, content)
+                if not storage_response:
+                    logger.error("Storage upload failed - no response")
+                    raise HTTPException(status_code=500, detail="Failed to upload file")
+            except Exception as e:
+                logger.error(f"Storage upload error: {str(e)}")
                 raise HTTPException(status_code=500, detail="Failed to upload file")
 
             # Store resume metadata in Supabase
@@ -251,9 +273,11 @@ async def extract_profile(
             }
 
             # Insert resume record
-            resume_result = supabase.table("user_resumes").insert(resume_data).execute()
-            if resume_result.error:
-                logger.error(f"Resume insert error: {resume_result.error}")
+            try:
+                resume_result = supabase.table("user_resumes").insert(resume_data).execute()
+                logger.info("Resume data inserted successfully")
+            except Exception as e:
+                logger.error(f"Resume insert error: {str(e)}")
 
             # Upsert user profile
             profile_data = {
@@ -270,9 +294,11 @@ async def extract_profile(
             }
 
             # Upsert profile
-            profile_result = supabase.table("user_profiles").upsert(profile_data).execute()
-            if profile_result.error:
-                logger.error(f"Profile upsert error: {profile_result.error}")
+            try:
+                profile_result = supabase.table("user_profiles").upsert(profile_data).execute()
+                logger.info("Profile data upserted successfully")
+            except Exception as e:
+                logger.error(f"Profile upsert error: {str(e)}")
 
             # Insert education records
             for edu in parsed_data.get("education", []):
@@ -285,7 +311,10 @@ async def extract_profile(
                     "end_year": edu.get("endYear", ""),
                     "grade": edu.get("grade", "")
                 }
-                supabase.table("user_education").insert(edu_data).execute()
+                try:
+                    supabase.table("user_education").insert(edu_data).execute()
+                except Exception as e:
+                    logger.error(f"Education insert error: {str(e)}")
 
             # Insert experience records
             for exp in parsed_data.get("experience", []):
@@ -300,7 +329,10 @@ async def extract_profile(
                     "technologies": exp.get("technologies", []),
                     "location": exp.get("location", "")
                 }
-                supabase.table("user_experience").insert(exp_data).execute()
+                try:
+                    supabase.table("user_experience").insert(exp_data).execute()
+                except Exception as e:
+                    logger.error(f"Experience insert error: {str(e)}")
 
             # Insert project records
             for proj in parsed_data.get("projects", []):
@@ -315,7 +347,10 @@ async def extract_profile(
                     "live_url": proj.get("liveUrl", ""),
                     "highlights": proj.get("highlights", [])
                 }
-                supabase.table("user_projects").insert(proj_data).execute()
+                try:
+                    supabase.table("user_projects").insert(proj_data).execute()
+                except Exception as e:
+                    logger.error(f"Project insert error: {str(e)}")
 
             # Insert skill records
             for skill in parsed_data.get("skills", []):
@@ -325,7 +360,10 @@ async def extract_profile(
                     "level": skill.get("level", "Intermediate"),
                     "category": skill.get("category", "Technical")
                 }
-                supabase.table("user_skills").upsert(skill_data).execute()
+                try:
+                    supabase.table("user_skills").upsert(skill_data).execute()
+                except Exception as e:
+                    logger.error(f"Skill upsert error: {str(e)}")
 
             # Insert certification records
             for cert in parsed_data.get("certifications", []):
@@ -338,7 +376,10 @@ async def extract_profile(
                     "credential_id": cert.get("credentialId", ""),
                     "credential_url": cert.get("credentialUrl", "")
                 }
-                supabase.table("user_certifications").insert(cert_data).execute()
+                try:
+                    supabase.table("user_certifications").insert(cert_data).execute()
+                except Exception as e:
+                    logger.error(f"Certification insert error: {str(e)}")
 
             return {
                 "success": True,
@@ -414,8 +455,7 @@ async def update_profile(user_id: str, profile_data: dict):
             **profile_data
         }).execute()
 
-        if result.error:
-            raise HTTPException(status_code=500, detail=result.error.message)
+        logger.info("Profile updated successfully")
 
         return {"success": True, "message": "Profile updated successfully"}
 

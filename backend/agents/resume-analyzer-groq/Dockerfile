@@ -9,14 +9,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY agents/resume-analyzer-groq/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared modules
-COPY ../shared /app/shared
+COPY shared /app/shared
 
 # Copy application code
-COPY . .
+COPY agents/resume-analyzer-groq .
 
 # Expose port
 EXPOSE 8003
