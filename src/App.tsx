@@ -16,6 +16,7 @@ import MockInterview from "@/pages/MockInterview";
 import InterviewResult from "@/pages/InterviewResult";
 import ProfileBuilder from "@/pages/ProfileBuilder";
 import ResumeAnalyzer from "@/pages/ResumeAnalyzer";
+import DebugPage from "@/pages/DebugPage";
 import NotFound from "@/pages/NotFound";
 import FutureIntegrations from "@/pages/FutureIntegrations";
 import { InterviewProvider } from "@/context/InterviewContext";
@@ -125,6 +126,13 @@ const App = () => (
               <Layout>
                 <ProtectedRoute>
                   <FutureIntegrations />
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="debug" element={
+              <Layout>
+                <ProtectedRoute>
+                  <DebugPage />
                 </ProtectedRoute>
               </Layout>
             } />

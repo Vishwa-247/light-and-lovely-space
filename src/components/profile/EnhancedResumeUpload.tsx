@@ -10,6 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import ResumePreview from "./ResumePreview";
 import AgenticResumeConfirmation from "./AgenticResumeConfirmation";
+import ResumeFilePreview from "./ResumeFilePreview";
 import { useResumeExtraction } from "@/hooks/useResumeExtraction";
 import { ExtractedResumeData } from "@/types/resume";
 
@@ -321,51 +322,30 @@ const EnhancedResumeUpload = () => {
         </CardContent>
       </Card>
 
-      {/* Current Resume Display */}
+          {/* Current Resume Display with Preview */}
       {currentResume && !isProcessing && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Current Resume
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">{currentResume.filename}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Uploaded on {new Date(currentResume.uploadDate).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Processed
-                </Badge>
-                <Button size="sm" variant="outline" onClick={handleDelete}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Upload New Resume */}
-            <div className="pt-4 border-t">
+        <div className="space-y-4">
+          <ResumeFilePreview
+            filePath={`user-uploads/${currentResume.filename}`}
+            fileName={currentResume.filename}
+            fileSize={0}
+            uploadDate={currentResume.uploadDate}
+            onDelete={handleDelete}
+          />
+          
+          {/* Upload New Resume */}
+          <Card>
+            <CardContent className="pt-6">
               <div {...getRootProps()} className="cursor-pointer">
                 <input {...getInputProps()} />
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" size="lg">
                   <Upload className="h-4 w-4 mr-2" />
                   Upload New Resume
                 </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Features Section */}

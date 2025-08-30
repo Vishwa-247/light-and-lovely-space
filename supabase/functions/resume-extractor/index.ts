@@ -72,30 +72,82 @@ interface ExtractedData {
 }
 
 async function extractTextFromPdf(fileContent: Uint8Array): Promise<string> {
-  // Simple text extraction from PDF - in production you'd use a proper PDF library
-  const decoder = new TextDecoder();
-  let text = decoder.decode(fileContent);
+  // Simple text extraction from PDF using streams
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true });
+  let text = '';
   
-  // Clean up PDF artifacts and extract readable text
-  text = text.replace(/[^\x20-\x7E\s]/g, ' ').trim();
-  
-  // Remove excessive whitespace
-  text = text.replace(/\s+/g, ' ');
-  
-  return text;
+  try {
+    // Try to decode as UTF-8 first
+    text = decoder.decode(fileContent);
+    
+    // Extract text between stream markers in PDF
+    const streamMatches = text.match(/stream\s*(.*?)\s*endstream/gs);
+    if (streamMatches) {
+      text = streamMatches.join(' ');
+    }
+    
+    // Clean up PDF control characters and artifacts
+    text = text
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ') // Remove control chars
+      .replace(/BT\s.*?ET/g, ' ') // Remove PDF text operators
+      .replace(/\/[A-Za-z]+/g, ' ') // Remove PDF commands
+      .replace(/\d+\s+\d+\s+(obj|R)/g, ' ') // Remove object references
+      .replace(/[<>[\](){}]/g, ' ') // Remove brackets
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+      
+    // If text is mostly garbage, try extracting visible ASCII only
+    if (text.length < 50 || text.match(/[^\x20-\x7E\s]/g)?.length > text.length * 0.3) {
+      text = Array.from(fileContent)
+        .map(byte => byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : ' ')
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    
+    return text || 'Unable to extract text from PDF';
+  } catch (error) {
+    console.error('PDF text extraction error:', error);
+    return 'PDF text extraction failed';
+  }
 }
 
 async function extractTextFromDocx(fileContent: Uint8Array): Promise<string> {
-  // Basic DOCX text extraction - convert to string and clean
-  const decoder = new TextDecoder();
-  let text = decoder.decode(fileContent);
-  
-  // Remove XML tags and clean up
-  text = text.replace(/<[^>]*>/g, ' ');
-  text = text.replace(/[^\x20-\x7E\s]/g, ' ').trim();
-  text = text.replace(/\s+/g, ' ');
-  
-  return text;
+  try {
+    // DOCX files are ZIP archives, try to extract text from document.xml
+    const decoder = new TextDecoder('utf-8', { ignoreBOM: true });
+    let text = decoder.decode(fileContent);
+    
+    // Look for XML content that might contain text
+    const textMatches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/gs);
+    if (textMatches) {
+      text = textMatches
+        .map(match => match.replace(/<w:t[^>]*>|<\/w:t>/g, ''))
+        .join(' ');
+    } else {
+      // Fallback: remove all XML/HTML tags and extract readable text
+      text = text
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/&[a-zA-Z0-9#]+;/g, ' ') // Remove HTML entities
+        .replace(/[^\x20-\x7E\s]/g, ' ') // Keep only printable ASCII
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    
+    // If extraction failed, try to find any readable ASCII text
+    if (text.length < 20) {
+      text = Array.from(fileContent)
+        .map(byte => byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : ' ')
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    
+    return text || 'Unable to extract text from DOCX';
+  } catch (error) {
+    console.error('DOCX text extraction error:', error);
+    return 'DOCX text extraction failed';
+  }
 }
 
 async function extractResumeData(resumeText: string): Promise<ExtractedData> {
