@@ -9,7 +9,6 @@ import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import CourseForm from "@/components/course/CourseForm";
 import { useToast } from "@/hooks/use-toast";
-import { getInterviewData } from "@/data/mockInterviewData";
 
 const staticQuestions = {
   "Software Engineer": [

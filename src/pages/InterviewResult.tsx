@@ -9,14 +9,66 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Video, MessageSquare, BarChart, CheckCircle, XCircle, AlertCircle, ArrowRight, BookOpen } from "lucide-react";
-import { getInterviewData } from "@/data/mockInterviewData";
 
 const InterviewResult = () => {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("feedback");
 
-  // Get interview data based on ID from our static data file
-  const interviewData = getInterviewData(id || "default");
+  // Generate mock interview data
+  const interviewData = {
+    title: "Mock Interview Session",
+    date: new Date().toLocaleDateString(),
+    duration: "45 minutes",
+    jobRole: "Software Engineer",
+    techStack: ["React", "Node.js", "TypeScript"],
+    experience: "3-5 years",
+    overallScore: 78,
+    feedback: {
+      technical: {
+        score: 82,
+        strengths: ["Strong coding fundamentals", "Good problem-solving approach"],
+        weaknesses: ["Could explain more complex algorithms better"],
+        summary: "Solid technical knowledge with room for improvement in advanced topics."
+      },
+      communication: {
+        score: 75,
+        strengths: ["Clear articulation", "Good listening skills"],
+        weaknesses: ["Could be more concise in responses"],
+        summary: "Good communication skills overall with minor areas for improvement."
+      },
+      nonVerbal: {
+        score: 72,
+        strengths: ["Maintained good eye contact", "Professional appearance"],
+        weaknesses: ["Some nervous gestures"],
+        summary: "Generally professional presentation with minor confidence improvements needed."
+      }
+    },
+    questions: [
+      {
+        question: "Tell me about your experience with React.",
+        answer: "I have been working with React for 3 years...",
+        feedback: "Good overview, could provide more specific examples.",
+        score: 75
+      }
+    ],
+    videoAnalysis: {
+      confidenceScore: 70,
+      engagementScore: 80,
+      stressIndicators: 25,
+      timeline: [
+        { time: "00:30", note: "Good initial confidence", score: 85 },
+        { time: "05:15", note: "Slight hesitation on technical question", score: 65 }
+      ]
+    },
+    recommendations: [
+      {
+        type: "course",
+        title: "Advanced React Patterns",
+        reason: "To improve technical depth",
+        link: "/courses"
+      }
+    ]
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";

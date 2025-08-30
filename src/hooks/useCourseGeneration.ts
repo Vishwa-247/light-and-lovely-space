@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { courseService } from "@/api/services/courseService";
 import { toast as sonnerToast } from "sonner";
 import { CourseType } from "@/types";
-import { getStaticCourse } from "@/data/staticCourses";
 
 // Define an interface for the content structure
 interface CourseContent {
@@ -135,12 +134,8 @@ export const useCourseGeneration = () => {
     try {
       setProgress(100);
       
-      // Get static course data or create dummy data
-      let staticCourse = getStaticCourse(topic, difficulty);
-      
-      // If no static course is found, generate dummy data
-      if (!staticCourse) {
-        staticCourse = {
+      // Generate dummy data for the course
+      const staticCourse = {
           title: topic,
           difficulty: difficulty,
           summary: `This is a comprehensive course on ${topic} for ${purpose} level.`,
@@ -196,7 +191,6 @@ export const useCourseGeneration = () => {
             ]
           }
         };
-      }
       
       console.log(`Course ${courseId} updated with static/dummy content`);
       
