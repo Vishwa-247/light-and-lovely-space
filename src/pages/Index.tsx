@@ -35,13 +35,6 @@ const Index = () => {
       icon: <Sparkles className="h-12 w-12 text-primary" />,
       link: "/resume-analyzer"
     },
-    {
-      id: "profile",
-      title: "Profile Builder",
-      description: "Build comprehensive professional profiles with AI assistance and document analysis capabilities.",
-      icon: <Users className="h-12 w-12 text-primary" />,
-      link: "/profile-builder"
-    }
   ];
 
   const platformBenefits = [

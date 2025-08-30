@@ -103,9 +103,9 @@ const CourseGenerator = () => {
       
       setRecentCourses(prev => [newCourse, ...prev]);
       
-      // Always navigate to profile-builder after short delay
+      // Navigate to dashboard after short delay
       setTimeout(() => {
-        navigate('/profile-builder');
+        navigate('/dashboard');
       }, 1000);
     },
     onError: () => {
@@ -128,7 +128,7 @@ const CourseGenerator = () => {
         duration: 3000,
       });
       
-      navigate('/profile-builder');
+      navigate('/dashboard');
     },
     onSettled: () => {
       setIsLoading(false);

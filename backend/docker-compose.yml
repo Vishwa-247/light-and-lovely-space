@@ -150,37 +150,6 @@ services:
     networks:
       - studymate_network
 
-  # Profile Service Agent
-  profile-service:
-    build:
-      context: .
-      dockerfile: ./agents/profile-service/Dockerfile
-    container_name: studymate_profile_service
-    restart: unless-stopped
-    ports:
-      - "8006:8006"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY:-}
-      - SUPABASE_URL=${SUPABASE_URL:-https://jwmsgrodliegekbrhvgt.supabase.co}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
-    networks:
-      - studymate_network
-
-  # Resume Analyzer with Groq
-  resume-analyzer-groq:
-    build:
-      context: .
-      dockerfile: ./agents/resume-analyzer-groq/Dockerfile
-    container_name: studymate_resume_analyzer_groq
-    restart: unless-stopped
-    ports:
-      - "8007:8003"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY:-}
-      - SUPABASE_URL=${SUPABASE_URL:-https://jwmsgrodliegekbrhvgt.supabase.co}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
-    networks:
-      - studymate_network
 
   # Orchestrator Service
   orchestrator:
@@ -195,9 +164,7 @@ services:
       - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
     depends_on:
       - api-gateway
-      - profile-service
       - resume-analyzer
-      - resume-analyzer-groq
     networks:
       - studymate_network
 

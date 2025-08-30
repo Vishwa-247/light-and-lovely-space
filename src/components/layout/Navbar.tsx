@@ -139,12 +139,6 @@ const Navbar = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link to="/profile-builder" className="cursor-pointer w-full">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile Builder</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer w-full">
                       <User className="mr-2 h-4 w-4" />
                       <span>My Dashboard</span>
@@ -213,12 +207,6 @@ const Navbar = () => {
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
-                <Link
-                  to="/profile-builder"
-                  className="w-full px-4 py-3 text-center font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
-                >
-                  Profile Builder
-                </Link>
                 <Link
                   to="/dashboard"
                   className="w-full px-4 py-3 text-center font-medium bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
