@@ -12,7 +12,7 @@ import DocumentPreview from "./DocumentPreview";
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ResumeUpload() {
-  const { profile, updateProfile, uploadResume, isLoading } = useProfile();
+  const { profile, updateProfile, uploadResume, applyExtractedData, isLoading } = useProfile();
   const { user } = useAuth();
   const { toast } = useToast();
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -66,9 +66,20 @@ export default function ResumeUpload() {
       clearInterval(progressInterval);
       setUploadProgress(100);
       
+      // Show confirmation toast with action buttons
       toast({
-        title: "Resume processed successfully",
-        description: "Profile has been automatically updated with extracted data",
+        title: "Resume processed successfully!",
+        description: "Would you like to auto-fill your profile with the extracted data?",
+        action: (
+          <Button
+            size="sm"
+            onClick={() => {
+              applyExtractedData();
+            }}
+          >
+            Apply Data
+          </Button>
+        ),
       });
       
       setTimeout(() => {
@@ -86,7 +97,7 @@ export default function ResumeUpload() {
         variant: "destructive",
       });
     }
-  }, [uploadResume, user, toast]);
+  }, [uploadResume, applyExtractedData, user, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

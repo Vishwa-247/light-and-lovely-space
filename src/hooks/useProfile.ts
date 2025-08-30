@@ -112,14 +112,6 @@ export const useProfile = () => {
       const result = await profileService.uploadResume(file, user.id);
       
       if (result.success) {
-        // Reload profile from backend to get updated data
-        await loadProfile();
-        
-        toast({
-          title: "Success",
-          description: "Resume uploaded and profile updated automatically",
-        });
-
         return result.data;
       } else {
         throw new Error(result.message || 'Failed to extract profile data');
@@ -138,12 +130,34 @@ export const useProfile = () => {
     }
   };
 
+  const applyExtractedData = async () => {
+    if (!user) return;
+    
+    try {
+      // Reload profile from backend to get the latest extracted data
+      await loadProfile();
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been automatically filled with extracted data",
+      });
+    } catch (error) {
+      console.error("Failed to apply extracted data:", error);
+      toast({
+        title: "Error", 
+        description: "Failed to apply extracted data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     profile,
     isLoading,
     error,
     updateProfile,
     uploadResume,
+    applyExtractedData,
     loadProfile,
   };
 };
