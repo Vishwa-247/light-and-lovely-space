@@ -100,64 +100,44 @@ export const useProfile = () => {
 
     setIsLoading(true);
     try {
-      // Call FastAPI backend for resume analysis and profile extraction
-      const formData = new FormData();
-      formData.append('resume', file);
-      formData.append('user_id', user.id);
-      if (jobRole) {
-        formData.append('job_role', jobRole);
-      }
-
-      const response = await fetch('http://localhost:8000/api/profile/extract-profile', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to process resume');
-      }
-
-      const result = await response.json();
+      const result = await profileService.uploadResume(file, user.id);
       
-      if (!result.success) {
+      if (result.success) {
+        // Update profile with extracted data
+        const extractedData = result.data;
+        
+        const updatedProfile: UserProfile = {
+          ...profile,
+          personalInfo: {
+            ...profile.personalInfo,
+            ...extractedData.personalInfo,
+          },
+          education: extractedData.education || profile.education,
+          experience: extractedData.experience || profile.experience,
+          projects: extractedData.projects || profile.projects,
+          skills: extractedData.skills || profile.skills,
+          certifications: extractedData.certifications || profile.certifications,
+          achievements: extractedData.achievements || [],
+          languages: extractedData.languages || [],
+          interests: extractedData.interests || [],
+          summary: extractedData.summary || "",
+          resumeData: extractedData.resumeData,
+          completionPercentage: 85,
+          updatedAt: new Date().toISOString(),
+        };
+
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
+        setProfile(updatedProfile);
+
+        toast({
+          title: "Success",
+          description: "Resume uploaded and profile updated automatically",
+        });
+
+        return extractedData;
+      } else {
         throw new Error(result.message || 'Failed to extract profile data');
       }
-
-      const extractedData = result.data;
-      
-      // Transform and merge extracted data with current profile
-      const updatedProfile: UserProfile = {
-        ...profile,
-        personalInfo: {
-          ...profile.personalInfo,
-          ...extractedData.personalInfo,
-        },
-        education: extractedData.education || profile.education,
-        experience: extractedData.experience || profile.experience,
-        projects: extractedData.projects || profile.projects,
-        skills: extractedData.skills || profile.skills,
-        certifications: extractedData.certifications || profile.certifications,
-        achievements: extractedData.achievements || [],
-        languages: extractedData.languages || [],
-        interests: extractedData.interests || [],
-        summary: extractedData.summary || "",
-        resumeData: extractedData.resumeData,
-        completionPercentage: extractedData.completionPercentage || 85,
-        updatedAt: extractedData.updatedAt,
-      };
-
-      localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
-      setProfile(updatedProfile);
-
-      toast({
-        title: "Success",
-        description: "Resume uploaded and profile updated automatically",
-      });
-
-      return extractedData;
 
     } catch (error) {
       console.error("Failed to upload resume:", error);

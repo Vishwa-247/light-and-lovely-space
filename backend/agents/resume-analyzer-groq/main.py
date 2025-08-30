@@ -8,14 +8,16 @@ import docx
 import io
 import json
 from datetime import datetime
-from bson import ObjectId
-import sys
-sys.path.append('/app/shared')
-from database.connection import get_profiles_collection, get_sync_database
+from supabase import create_client, Client
 
 # Configure Groq API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
+
+# Configure Supabase
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jwmsgrodliegekbrhvgt.supabase.co")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 app = FastAPI(title="Resume Analyzer Service with Groq")
 
@@ -93,25 +95,7 @@ def analyze_resume_with_groq(resume_text: str, job_role: str, job_description: s
             }}
         }},
         "improvement_priority": [<ordered list of top 3 priorities>],
-        "role_specific_advice": [<list of advice specific to the job role>],
-        "deep_analysis": {{
-            "content_quality": {{
-                "score": <0-100>,
-                "details": "<analysis of content quality>"
-            }},
-            "format_assessment": {{
-                "score": <0-100>,
-                "details": "<analysis of formatting and structure>"
-            }},
-            "impact_metrics": {{
-                "score": <0-100>,
-                "details": "<analysis of quantifiable achievements>"
-            }},
-            "industry_alignment": {{
-                "score": <0-100>,
-                "details": "<how well aligned with industry standards>"
-            }}
-        }}
+        "role_specific_advice": [<list of advice specific to the job role>]
     }}
     
     Ensure scores are realistic and based on actual resume content. Provide specific, actionable feedback.
@@ -182,13 +166,7 @@ def analyze_resume_with_groq(resume_text: str, job_role: str, job_description: s
                 f"Focus on {job_role}-specific achievements",
                 "Highlight relevant project experience",
                 "Include industry-standard tools and technologies"
-            ],
-            "deep_analysis": {
-                "content_quality": {"score": 75, "details": "Good content with potential for improvement"},
-                "format_assessment": {"score": 80, "details": "Professional formatting and structure"},
-                "impact_metrics": {"score": 60, "details": "Limited quantifiable achievements"},
-                "industry_alignment": {"score": 70, "details": "Good alignment with some gaps"}
-            }
+            ]
         }
 
 def extract_resume_data_with_groq(resume_text: str) -> Dict[str, Any]:
@@ -353,21 +331,86 @@ async def analyze_resume(
         "processing_status": "completed"
     }
     
-    # Save to database if user_id provided
+    # Save to Supabase if user_id provided
     if user_id:
         try:
-            profiles_collection = get_profiles_collection()
-            result["user_id"] = user_id
-            result["_id"] = str(ObjectId())
-            profiles_collection.insert_one(result)
+            # Store analysis result
+            analysis_data = {
+                "user_id": user_id,
+                "filename": resume.filename,
+                "file_size": len(file_content),
+                "extracted_text": resume_text,
+                "ai_analysis": {
+                    "extracted_data": extracted_data,
+                    "analysis": analysis
+                },
+                "processing_status": "completed"
+            }
+            
+            supabase.table("user_resumes").insert(analysis_data).execute()
         except Exception as e:
-            print(f"Error saving to database: {e}")
+            print(f"Error saving to Supabase: {e}")
     
     return {
         "success": True,
         "data": result,
         "message": "Resume analyzed successfully"
     }
+
+@app.post("/extract-profile")
+async def extract_profile_data(
+    resume: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """Extract profile data from resume for profile builder"""
+    
+    if not resume.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    # Read file content
+    file_content = await resume.read()
+    
+    # Extract text based on file type
+    if resume.filename.endswith('.pdf'):
+        resume_text = extract_text_from_pdf(file_content)
+    elif resume.filename.endswith('.docx'):
+        resume_text = extract_text_from_docx(file_content)
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF or DOCX")
+    
+    if not resume_text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract text from the uploaded file")
+    
+    # Extract structured data
+    extracted_data = extract_resume_data_with_groq(resume_text)
+    
+    # Transform to profile format
+    profile_data = {
+        "personalInfo": {
+            "fullName": extracted_data["personal_info"]["name"],
+            "email": extracted_data["personal_info"]["email"],
+            "phone": extracted_data["personal_info"]["phone"],
+            "location": extracted_data["personal_info"]["location"],
+            "linkedin": extracted_data["personal_info"]["linkedin"],
+            "github": extracted_data["personal_info"]["github"],
+            "portfolio": extracted_data["personal_info"]["portfolio"]
+        },
+        "experience": extracted_data["experience"],
+        "education": extracted_data["education"],
+        "projects": extracted_data["projects"],
+        "skills": [skill for skill_category in extracted_data["skills"].values() for skill in skill_category],
+        "certifications": extracted_data["certifications"],
+        "resumeData": {
+            "filename": resume.filename,
+            "uploadDate": datetime.now().isoformat(),
+            "extractedText": resume_text,
+            "aiAnalysis": "Resume successfully processed and data extracted",
+            "skillGaps": [],
+            "recommendations": ["Complete missing profile sections", "Add more project details"]
+        }
+    }
+    
+    return profile_data
 
 @app.post("/quick-suggestions")
 async def get_quick_suggestions(job_role: str = Form(...)):

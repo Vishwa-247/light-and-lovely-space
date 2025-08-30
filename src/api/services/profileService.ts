@@ -5,22 +5,42 @@ export interface ProfileResponse {
   profile: UserProfile;
 }
 
+const BACKEND_URL = 'http://localhost:8006';
+
 export const profileService = {
   async getProfile(userId: string): Promise<UserProfile> {
-    const response = await apiClient.get(`/profile/${userId}`);
-    return response.profile;
+    const response = await fetch(`${BACKEND_URL}/profile/${userId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch profile');
+    }
+    
+    return response.json();
   },
 
   async updateProfile(userId: string, updates: Partial<ProfileFormData>): Promise<UserProfile> {
-    const response = await apiClient.put(`/profile/${userId}`, updates);
-    return response.profile;
+    const response = await fetch(`${BACKEND_URL}/profile/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      },
+      body: JSON.stringify(updates),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update profile');
+    }
+    
+    return response.json();
   },
 
-  async uploadResume(file: File): Promise<any> {
+  async uploadResume(file: File, userId: string): Promise<any> {
     const formData = new FormData();
     formData.append('resume', file);
+    formData.append('user_id', userId);
     
-    const response = await fetch('/api/profile/upload-resume', {
+    const response = await fetch(`${BACKEND_URL}/extract-profile`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -36,7 +56,12 @@ export const profileService = {
   },
 
   async getProfileAnalysis(userId: string): Promise<any> {
-    const response = await apiClient.get(`/profile/${userId}/analysis`);
-    return response;
+    const response = await fetch(`${BACKEND_URL}/profile/${userId}/analysis`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch analysis');
+    }
+    
+    return response.json();
   },
 };

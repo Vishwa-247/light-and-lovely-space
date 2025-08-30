@@ -7,13 +7,12 @@ from typing import Any, Dict, Optional
 
 import httpx
 import PyPDF2
-from bson import ObjectId
 from docx import Document
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from groq import Groq
-from motor.motor_asyncio import AsyncIOMotorClient
+from supabase import create_client, Client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,27 +34,12 @@ security = HTTPBearer()
 
 # Environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://root:password@mongodb:27017/studymate?authSource=admin")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jwmsgrodliegekbrhvgt.supabase.co")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 
-# Initialize Groq client
+# Initialize clients
 groq_client = Groq(api_key=GROQ_API_KEY)
-
-# MongoDB connection
-client = None
-db = None
-
-@app.on_event("startup")
-async def startup_db_client():
-    global client, db
-    client = AsyncIOMotorClient(MONGODB_URL)
-    db = client.studymate
-    logger.info("Connected to MongoDB")
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    if client:
-        client.close()
-        logger.info("Disconnected from MongoDB")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract text from PDF file"""
@@ -245,46 +229,129 @@ async def extract_profile(
             # Parse with Groq AI
             parsed_data = await parse_resume_with_groq(extracted_text)
 
-            # Add metadata
+            # Upload file to Supabase Storage
+            file_path = f"{user_id}/{resume.filename}"
+            storage_response = supabase.storage.from_("resume-files").upload(file_path, content)
+            
+            if storage_response.error:
+                logger.error(f"Storage upload error: {storage_response.error}")
+                raise HTTPException(status_code=500, detail="Failed to upload file")
+
+            # Store resume metadata in Supabase
             resume_data = {
+                "user_id": user_id,
                 "filename": resume.filename,
-                "uploadDate": datetime.utcnow().isoformat(),
-                "extractedText": extracted_text,
-                "aiAnalysis": "Resume successfully processed and data extracted",
-                "skillGaps": [],  # Can be enhanced with job role comparison
-                "recommendations": ["Complete missing profile sections", "Add more project details"]
+                "file_path": file_path,
+                "file_size": len(content),
+                "extracted_text": extracted_text,
+                "ai_analysis": parsed_data,
+                "skill_gaps": [],
+                "recommendations": ["Complete missing profile sections", "Add more project details"],
+                "processing_status": "completed"
             }
 
-            # Store in MongoDB
+            # Insert resume record
+            resume_result = supabase.table("user_resumes").insert(resume_data).execute()
+            if resume_result.error:
+                logger.error(f"Resume insert error: {resume_result.error}")
+
+            # Upsert user profile
             profile_data = {
-                "userId": user_id,
-                "personalInfo": parsed_data.get("personalInfo", {}),
-                "education": parsed_data.get("education", []),
-                "experience": parsed_data.get("experience", []),
-                "projects": parsed_data.get("projects", []),
-                "skills": parsed_data.get("skills", []),
-                "certifications": parsed_data.get("certifications", []),
-                "resumeData": resume_data,
-                "achievements": parsed_data.get("achievements", []),
-                "languages": parsed_data.get("languages", []),
-                "interests": parsed_data.get("interests", []),
-                "summary": parsed_data.get("summary", ""),
-                "completionPercentage": 85,  # Calculate based on filled fields
-                "createdAt": datetime.utcnow().isoformat(),
-                "updatedAt": datetime.utcnow().isoformat()
+                "user_id": user_id,
+                "full_name": parsed_data.get("personalInfo", {}).get("fullName"),
+                "email": parsed_data.get("personalInfo", {}).get("email"),
+                "phone": parsed_data.get("personalInfo", {}).get("phone"),
+                "location": parsed_data.get("personalInfo", {}).get("location"),
+                "linkedin_url": parsed_data.get("personalInfo", {}).get("linkedin"),
+                "github_url": parsed_data.get("personalInfo", {}).get("github"),
+                "portfolio_url": parsed_data.get("personalInfo", {}).get("portfolio"),
+                "professional_summary": parsed_data.get("summary", ""),
+                "completion_percentage": 85
             }
 
-            # Upsert profile in MongoDB
-            await db.profiles.update_one(
-                {"userId": user_id},
-                {"$set": profile_data},
-                upsert=True
-            )
+            # Upsert profile
+            profile_result = supabase.table("user_profiles").upsert(profile_data).execute()
+            if profile_result.error:
+                logger.error(f"Profile upsert error: {profile_result.error}")
+
+            # Insert education records
+            for edu in parsed_data.get("education", []):
+                edu_data = {
+                    "user_id": user_id,
+                    "institution": edu.get("institution", ""),
+                    "degree": edu.get("degree", ""),
+                    "field_of_study": edu.get("field", ""),
+                    "start_year": edu.get("startYear", ""),
+                    "end_year": edu.get("endYear", ""),
+                    "grade": edu.get("grade", "")
+                }
+                supabase.table("user_education").insert(edu_data).execute()
+
+            # Insert experience records
+            for exp in parsed_data.get("experience", []):
+                exp_data = {
+                    "user_id": user_id,
+                    "company": exp.get("company", ""),
+                    "position": exp.get("position", ""),
+                    "start_date": exp.get("startDate", ""),
+                    "end_date": exp.get("endDate", ""),
+                    "is_current": exp.get("current", False),
+                    "description": exp.get("description", ""),
+                    "technologies": exp.get("technologies", []),
+                    "location": exp.get("location", "")
+                }
+                supabase.table("user_experience").insert(exp_data).execute()
+
+            # Insert project records
+            for proj in parsed_data.get("projects", []):
+                proj_data = {
+                    "user_id": user_id,
+                    "title": proj.get("title", ""),
+                    "description": proj.get("description", ""),
+                    "technologies": proj.get("technologies", []),
+                    "start_date": proj.get("startDate", ""),
+                    "end_date": proj.get("endDate", ""),
+                    "github_url": proj.get("githubUrl", ""),
+                    "live_url": proj.get("liveUrl", ""),
+                    "highlights": proj.get("highlights", [])
+                }
+                supabase.table("user_projects").insert(proj_data).execute()
+
+            # Insert skill records
+            for skill in parsed_data.get("skills", []):
+                skill_data = {
+                    "user_id": user_id,
+                    "name": skill.get("name", ""),
+                    "level": skill.get("level", "Intermediate"),
+                    "category": skill.get("category", "Technical")
+                }
+                supabase.table("user_skills").upsert(skill_data).execute()
+
+            # Insert certification records
+            for cert in parsed_data.get("certifications", []):
+                cert_data = {
+                    "user_id": user_id,
+                    "name": cert.get("name", ""),
+                    "issuer": cert.get("issuer", ""),
+                    "issue_date": cert.get("issueDate", ""),
+                    "expiry_date": cert.get("expiryDate", ""),
+                    "credential_id": cert.get("credentialId", ""),
+                    "credential_url": cert.get("credentialUrl", "")
+                }
+                supabase.table("user_certifications").insert(cert_data).execute()
 
             return {
                 "success": True,
                 "message": "Profile extracted successfully",
-                "data": profile_data
+                "data": {
+                    "personalInfo": parsed_data.get("personalInfo", {}),
+                    "education": parsed_data.get("education", []),
+                    "experience": parsed_data.get("experience", []),
+                    "projects": parsed_data.get("projects", []),
+                    "skills": parsed_data.get("skills", []),
+                    "certifications": parsed_data.get("certifications", []),
+                    "resumeData": resume_data
+                }
             }
 
         finally:
@@ -299,26 +366,39 @@ async def extract_profile(
 async def get_profile(user_id: str):
     """Get user profile by ID"""
     try:
-        profile = await db.profiles.find_one({"userId": user_id})
-        if not profile:
-            # Return empty profile structure
-            return {
-                "userId": user_id,
-                "personalInfo": {},
-                "education": [],
-                "experience": [],
-                "projects": [],
-                "skills": [],
-                "certifications": [],
-                "resumeData": None,
-                "completionPercentage": 0,
-                "createdAt": datetime.utcnow().isoformat(),
-                "updatedAt": datetime.utcnow().isoformat()
-            }
+        # Get profile data
+        profile_result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+        education_result = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+        experience_result = supabase.table("user_experience").select("*").eq("user_id", user_id).execute()
+        projects_result = supabase.table("user_projects").select("*").eq("user_id", user_id).execute()
+        skills_result = supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
+        certifications_result = supabase.table("user_certifications").select("*").eq("user_id", user_id).execute()
+        resumes_result = supabase.table("user_resumes").select("*").eq("user_id", user_id).execute()
+
+        profile_data = profile_result.data[0] if profile_result.data else {}
         
-        # Convert ObjectId to string
-        profile["_id"] = str(profile["_id"])
-        return profile
+        return {
+            "userId": user_id,
+            "personalInfo": {
+                "fullName": profile_data.get("full_name", ""),
+                "email": profile_data.get("email", ""),
+                "phone": profile_data.get("phone", ""),
+                "location": profile_data.get("location", ""),
+                "linkedin": profile_data.get("linkedin_url", ""),
+                "github": profile_data.get("github_url", ""),
+                "portfolio": profile_data.get("portfolio_url", "")
+            },
+            "education": education_result.data or [],
+            "experience": experience_result.data or [],
+            "projects": projects_result.data or [],
+            "skills": skills_result.data or [],
+            "certifications": certifications_result.data or [],
+            "resumeData": resumes_result.data[0] if resumes_result.data else None,
+            "summary": profile_data.get("professional_summary", ""),
+            "completionPercentage": profile_data.get("completion_percentage", 0),
+            "createdAt": profile_data.get("created_at", datetime.utcnow().isoformat()),
+            "updatedAt": profile_data.get("updated_at", datetime.utcnow().isoformat())
+        }
 
     except Exception as e:
         logger.error(f"Error getting profile: {str(e)}")
@@ -328,13 +408,14 @@ async def get_profile(user_id: str):
 async def update_profile(user_id: str, profile_data: dict):
     """Update user profile"""
     try:
-        profile_data["updatedAt"] = datetime.utcnow().isoformat()
-        
-        result = await db.profiles.update_one(
-            {"userId": user_id},
-            {"$set": profile_data},
-            upsert=True
-        )
+        # Update profile data
+        result = supabase.table("user_profiles").upsert({
+            "user_id": user_id,
+            **profile_data
+        }).execute()
+
+        if result.error:
+            raise HTTPException(status_code=500, detail=result.error.message)
 
         return {"success": True, "message": "Profile updated successfully"}
 

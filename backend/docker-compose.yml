@@ -160,12 +160,9 @@ services:
     ports:
       - "8006:8006"
     environment:
-      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
-      - REDIS_URL=redis://redis:6379
       - GROQ_API_KEY=${GROQ_API_KEY:-}
-    depends_on:
-      - mongodb
-      - redis
+      - SUPABASE_URL=${SUPABASE_URL:-https://jwmsgrodliegekbrhvgt.supabase.co}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
     networks:
       - studymate_network
 
@@ -179,12 +176,9 @@ services:
     ports:
       - "8007:8003"
     environment:
-      - MONGODB_URL=mongodb://admin:password@mongodb:27017/studymate_db?authSource=admin
-      - REDIS_URL=redis://redis:6379
       - GROQ_API_KEY=${GROQ_API_KEY:-}
-    depends_on:
-      - mongodb
-      - redis
+      - SUPABASE_URL=${SUPABASE_URL:-https://jwmsgrodliegekbrhvgt.supabase.co}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
     networks:
       - studymate_network
 
