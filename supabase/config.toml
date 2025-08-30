@@ -25,3 +25,6 @@ ip_version = "ipv4"
 [edge_runtime]
 enabled = true
 ip_version = "ipv4"
+
+[functions.resume-extractor]
+verify_jwt = false

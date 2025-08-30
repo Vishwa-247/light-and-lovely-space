@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Container from "@/components/ui/Container";
 import { useToast } from "@/hooks/use-toast"; 
-
+import ResumePreview from "@/components/profile/ResumePreview";
 import JobRoleSuggestions from "@/components/resume/JobRoleSuggestions";
 
 export default function ResumeAnalyzer() {
@@ -253,6 +253,8 @@ export default function ResumeAnalyzer() {
                     </div>
                   </div>
 
+                  {/* Resume Preview */}
+                  <ResumePreview file={file} fullView={true} />
 
                   <div className="flex gap-2">
                     <Button onClick={analyzeResume} className="flex-1">
@@ -354,6 +356,8 @@ export default function ResumeAnalyzer() {
               </Card>
             </div>
 
+            {/* Resume Preview with Analysis */}
+            {file && <ResumePreview file={file} showAnalysis={true} fullView={true} />}
 
             {/* Strengths */}
             <Card>

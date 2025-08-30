@@ -14,7 +14,7 @@ import DSATopic from "@/pages/DSATopic";
 import CompanyProblems from "@/pages/CompanyProblems";
 import MockInterview from "@/pages/MockInterview";
 import InterviewResult from "@/pages/InterviewResult";
-
+import ProfileBuilder from "@/pages/ProfileBuilder";
 import ResumeAnalyzer from "@/pages/ResumeAnalyzer";
 import NotFound from "@/pages/NotFound";
 import FutureIntegrations from "@/pages/FutureIntegrations";
@@ -103,6 +103,13 @@ const App = () => (
               <Layout>
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              </Layout>
+            } />
+            <Route path="profile-builder" element={
+              <Layout>
+                <ProtectedRoute>
+                  <ProfileBuilder />
                 </ProtectedRoute>
               </Layout>
             } />
