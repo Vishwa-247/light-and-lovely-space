@@ -44,7 +44,16 @@ export const useProfile = () => {
     
     setIsLoading(true);
     try {
-      // For now, use local storage as demo backend
+      // Try to load from backend first
+      try {
+        const backendProfile = await profileService.getProfile(user.id);
+        setProfile(backendProfile);
+        return;
+      } catch (backendError) {
+        console.log("Backend profile not found, trying localStorage");
+      }
+
+      // Fall back to localStorage if backend fails
       const savedProfile = localStorage.getItem(`profile_${user.id}`);
       if (savedProfile) {
         setProfile(JSON.parse(savedProfile));
@@ -103,38 +112,15 @@ export const useProfile = () => {
       const result = await profileService.uploadResume(file, user.id);
       
       if (result.success) {
-        // Update profile with extracted data
-        const extractedData = result.data;
+        // Reload profile from backend to get updated data
+        await loadProfile();
         
-        const updatedProfile: UserProfile = {
-          ...profile,
-          personalInfo: {
-            ...profile.personalInfo,
-            ...extractedData.personalInfo,
-          },
-          education: extractedData.education || profile.education,
-          experience: extractedData.experience || profile.experience,
-          projects: extractedData.projects || profile.projects,
-          skills: extractedData.skills || profile.skills,
-          certifications: extractedData.certifications || profile.certifications,
-          achievements: extractedData.achievements || [],
-          languages: extractedData.languages || [],
-          interests: extractedData.interests || [],
-          summary: extractedData.summary || "",
-          resumeData: extractedData.resumeData,
-          completionPercentage: 85,
-          updatedAt: new Date().toISOString(),
-        };
-
-        localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
-        setProfile(updatedProfile);
-
         toast({
           title: "Success",
           description: "Resume uploaded and profile updated automatically",
         });
 
-        return extractedData;
+        return result.data;
       } else {
         throw new Error(result.message || 'Failed to extract profile data');
       }

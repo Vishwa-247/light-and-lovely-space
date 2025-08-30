@@ -180,12 +180,28 @@ async def parse_resume_with_groq(resume_text: str) -> Dict[str, Any]:
 
         try:
             content = response.choices[0].message.content.strip()
+            logger.error(f"Raw response content: {content}")
+            
             if not content:
                 raise ValueError("Empty response from Groq")
+            
+            # Handle markdown-wrapped JSON responses
+            if content.startswith("```json") and content.endswith("```"):
+                # Extract JSON content between markdown code blocks
+                json_start = content.find("```json") + 7
+                json_end = content.rfind("```")
+                content = content[json_start:json_end].strip()
+            elif content.startswith("```") and content.endswith("```"):
+                # Handle generic code blocks
+                json_start = content.find("```") + 3
+                json_end = content.rfind("```")
+                content = content[json_start:json_end].strip()
+            
             parsed_data = json.loads(content)
             return parsed_data
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Failed to parse Groq response: {str(e)}")
+            logger.error(f"Raw response content: {response.choices[0].message.content}")
             # Return fallback data structure
             return {
                 "personalInfo": {},
@@ -248,13 +264,21 @@ async def extract_profile(
             # Parse with Groq AI
             parsed_data = await parse_resume_with_groq(extracted_text)
 
-            # Upload file to Supabase Storage
+            # Upload file to Supabase Storage (handle duplicates)
             file_path = f"{user_id}/{resume.filename}"
             try:
-                storage_response = supabase.storage.from_("resume-files").upload(file_path, content)
-                if not storage_response:
-                    logger.error("Storage upload failed - no response")
-                    raise HTTPException(status_code=500, detail="Failed to upload file")
+                # Try to upload, if file exists, overwrite it
+                try:
+                    storage_response = supabase.storage.from_("resume-files").upload(file_path, content)
+                    logger.info(f"File uploaded successfully: {file_path}")
+                except Exception as upload_error:
+                    # If file exists, update it instead
+                    if "already exists" in str(upload_error).lower():
+                        logger.info(f"File exists, updating: {file_path}")
+                        storage_response = supabase.storage.from_("resume-files").update(file_path, content)
+                        logger.info(f"File updated successfully: {file_path}")
+                    else:
+                        raise upload_error
             except Exception as e:
                 logger.error(f"Storage upload error: {str(e)}")
                 raise HTTPException(status_code=500, detail="Failed to upload file")
@@ -429,12 +453,73 @@ async def get_profile(user_id: str):
                 "github": profile_data.get("github_url", ""),
                 "portfolio": profile_data.get("portfolio_url", "")
             },
-            "education": education_result.data or [],
-            "experience": experience_result.data or [],
-            "projects": projects_result.data or [],
-            "skills": skills_result.data or [],
-            "certifications": certifications_result.data or [],
-            "resumeData": resumes_result.data[0] if resumes_result.data else None,
+            "education": [
+                {
+                    "id": str(edu.get("id", "")),
+                    "institution": edu.get("institution", ""),
+                    "degree": edu.get("degree", ""),
+                    "field": edu.get("field_of_study", ""),
+                    "startYear": edu.get("start_year", ""),
+                    "endYear": edu.get("end_year", ""),
+                    "grade": edu.get("grade", ""),
+                    "description": edu.get("description", "")
+                } for edu in education_result.data
+            ] if education_result.data else [],
+            "experience": [
+                {
+                    "id": str(exp.get("id", "")),
+                    "company": exp.get("company", ""),
+                    "position": exp.get("position", ""),
+                    "startDate": exp.get("start_date", ""),
+                    "endDate": exp.get("end_date", ""),
+                    "current": exp.get("is_current", False),
+                    "description": exp.get("description", ""),
+                    "technologies": exp.get("technologies", []),
+                    "location": exp.get("location", "")
+                } for exp in experience_result.data
+            ] if experience_result.data else [],
+            "projects": [
+                {
+                    "id": str(proj.get("id", "")),
+                    "title": proj.get("title", ""),
+                    "description": proj.get("description", ""),
+                    "technologies": proj.get("technologies", []),
+                    "startDate": proj.get("start_date", ""),
+                    "endDate": proj.get("end_date", ""),
+                    "githubUrl": proj.get("github_url", ""),
+                    "liveUrl": proj.get("live_url", ""),
+                    "highlights": proj.get("highlights", [])
+                } for proj in projects_result.data
+            ] if projects_result.data else [],
+            "skills": [
+                {
+                    "name": skill.get("name", ""),
+                    "level": skill.get("level", ""),
+                    "category": skill.get("category", "")
+                } for skill in skills_result.data
+            ] if skills_result.data else [],
+            "certifications": [
+                {
+                    "id": str(cert.get("id", "")),
+                    "name": cert.get("name", ""),
+                    "issuer": cert.get("issuer", ""),
+                    "issueDate": cert.get("issue_date", ""),
+                    "expiryDate": cert.get("expiry_date", ""),
+                    "credentialId": cert.get("credential_id", ""),
+                    "credentialUrl": cert.get("credential_url", "")
+                } for cert in certifications_result.data
+            ] if certifications_result.data else [],
+            "resumeData": {
+                "filename": resumes_result.data[0].get("filename", ""),
+                "uploadDate": resumes_result.data[0].get("upload_date", ""),
+                "extractedText": resumes_result.data[0].get("extracted_text", ""),
+                "aiAnalysis": resumes_result.data[0].get("ai_analysis", ""),
+                "skillGaps": resumes_result.data[0].get("skill_gaps", []),
+                "recommendations": resumes_result.data[0].get("recommendations", [])
+            } if resumes_result.data else None,
+            "achievements": [],
+            "languages": [],
+            "interests": [],
             "summary": profile_data.get("professional_summary", ""),
             "completionPercentage": profile_data.get("completion_percentage", 0),
             "createdAt": profile_data.get("created_at", datetime.utcnow().isoformat()),
