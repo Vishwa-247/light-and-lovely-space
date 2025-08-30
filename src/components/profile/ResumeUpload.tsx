@@ -9,6 +9,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, Download, Trash2 } from "lu
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import DocumentPreview from "./DocumentPreview";
+import ResumeConfirmation from "./ResumeConfirmation";
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ResumeUpload() {
@@ -18,6 +19,8 @@ export default function ResumeUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -61,26 +64,21 @@ export default function ResumeUpload() {
       }, 300);
 
       // Use the updated uploadResume method that calls the profile service
-      await uploadResume(file);
+      const result = await uploadResume(file);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
       
-      // Show confirmation toast with action buttons
-      toast({
-        title: "Resume processed successfully!",
-        description: "Would you like to auto-fill your profile with the extracted data?",
-        action: (
-          <Button
-            size="sm"
-            onClick={() => {
-              applyExtractedData();
-            }}
-          >
-            Apply Data
-          </Button>
-        ),
-      });
+      // Store extracted data and show confirmation dialog
+      if (result) {
+        setExtractedData(result);
+        setShowConfirmation(true);
+        
+        toast({
+          title: "Resume processed successfully!",
+          description: "Review the extracted data and confirm to auto-fill your profile.",
+        });
+      }
       
       setTimeout(() => {
         setUploadProgress(0);
@@ -97,7 +95,7 @@ export default function ResumeUpload() {
         variant: "destructive",
       });
     }
-  }, [uploadResume, applyExtractedData, user, toast]);
+  }, [uploadResume, user, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -117,16 +115,45 @@ export default function ResumeUpload() {
     });
   };
 
+  const handleConfirmExtraction = async () => {
+    const success = await applyExtractedData();
+    if (success) {
+      setShowConfirmation(false);
+      setExtractedData(null);
+    }
+  };
+
+  const handleCancelExtraction = () => {
+    setShowConfirmation(false);
+    setExtractedData(null);
+    toast({
+      title: "Data not applied",
+      description: "You can manually fill your profile or upload again later.",
+    });
+  };
+
   const currentResume = profile?.resumeData;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold mb-2">Resume Upload</h2>
-        <p className="text-muted-foreground">
-          Upload your resume to automatically extract information and get AI-powered insights.
-        </p>
-      </div>
+      {/* Show confirmation dialog if data is extracted */}
+      {showConfirmation && extractedData && (
+        <ResumeConfirmation 
+          extractedData={extractedData}
+          onConfirm={handleConfirmExtraction}
+          onCancel={handleCancelExtraction}
+          isLoading={isLoading}
+        />
+      )}
+
+      {!showConfirmation && (
+        <>
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Resume Upload</h2>
+            <p className="text-muted-foreground">
+              Upload your resume to automatically extract information and get AI-powered insights.
+            </p>
+          </div>
 
       {/* Upload Area */}
       {!currentResume && !currentFile && (
@@ -298,6 +325,8 @@ export default function ResumeUpload() {
           </ul>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

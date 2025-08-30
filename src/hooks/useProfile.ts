@@ -133,14 +133,17 @@ export const useProfile = () => {
   const applyExtractedData = async () => {
     if (!user) return;
     
+    setIsLoading(true);
     try {
       // Reload profile from backend to get the latest extracted data
       await loadProfile();
       
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been automatically filled with extracted data",
+        title: "Success! 🎉",
+        description: "Your profile has been automatically filled with extracted data. Check the individual sections to see the updates.",
       });
+      
+      return true;
     } catch (error) {
       console.error("Failed to apply extracted data:", error);
       toast({
@@ -148,6 +151,9 @@ export const useProfile = () => {
         description: "Failed to apply extracted data. Please try again.",
         variant: "destructive",
       });
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 

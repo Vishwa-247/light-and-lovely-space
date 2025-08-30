@@ -324,6 +324,17 @@ async def extract_profile(
             except Exception as e:
                 logger.error(f"Profile upsert error: {str(e)}")
 
+            # Clear existing records to avoid duplicates
+            try:
+                supabase.table("user_education").delete().eq("user_id", user_id).execute()
+                supabase.table("user_experience").delete().eq("user_id", user_id).execute()
+                supabase.table("user_projects").delete().eq("user_id", user_id).execute()
+                supabase.table("user_skills").delete().eq("user_id", user_id).execute()
+                supabase.table("user_certifications").delete().eq("user_id", user_id).execute()
+                logger.info("Cleared existing profile data")
+            except Exception as e:
+                logger.error(f"Error clearing existing data: {str(e)}")
+
             # Insert education records
             for edu in parsed_data.get("education", []):
                 edu_data = {
@@ -385,9 +396,9 @@ async def extract_profile(
                     "category": skill.get("category", "Technical")
                 }
                 try:
-                    supabase.table("user_skills").upsert(skill_data).execute()
+                    supabase.table("user_skills").insert(skill_data).execute()
                 except Exception as e:
-                    logger.error(f"Skill upsert error: {str(e)}")
+                    logger.error(f"Skill insert error: {str(e)}")
 
             # Insert certification records
             for cert in parsed_data.get("certifications", []):
