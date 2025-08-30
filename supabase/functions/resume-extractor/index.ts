@@ -72,12 +72,30 @@ interface ExtractedData {
 }
 
 async function extractTextFromPdf(fileContent: Uint8Array): Promise<string> {
-  // Using a simple text extraction approach for PDF
-  // In production, you might want to use a more robust PDF parsing library
+  // Simple text extraction from PDF - in production you'd use a proper PDF library
   const decoder = new TextDecoder();
-  const text = decoder.decode(fileContent);
-  // Basic PDF text extraction (this is simplified)
-  return text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
+  let text = decoder.decode(fileContent);
+  
+  // Clean up PDF artifacts and extract readable text
+  text = text.replace(/[^\x20-\x7E\s]/g, ' ').trim();
+  
+  // Remove excessive whitespace
+  text = text.replace(/\s+/g, ' ');
+  
+  return text;
+}
+
+async function extractTextFromDocx(fileContent: Uint8Array): Promise<string> {
+  // Basic DOCX text extraction - convert to string and clean
+  const decoder = new TextDecoder();
+  let text = decoder.decode(fileContent);
+  
+  // Remove XML tags and clean up
+  text = text.replace(/<[^>]*>/g, ' ');
+  text = text.replace(/[^\x20-\x7E\s]/g, ' ').trim();
+  text = text.replace(/\s+/g, ' ');
+  
+  return text;
 }
 
 async function extractResumeData(resumeText: string): Promise<ExtractedData> {
@@ -216,17 +234,34 @@ serve(async (req) => {
 
     console.log(`Processing file: ${resumeFile.name} for user: ${userId}`);
 
-    // Read file content
+    // Store file in Supabase Storage
+    const fileName = `${userId}/${Date.now()}_${resumeFile.name}`;
     const fileContent = new Uint8Array(await resumeFile.arrayBuffer());
     
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('resume-files')
+      .upload(fileName, fileContent, {
+        contentType: resumeFile.type,
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`Failed to upload file: ${uploadError.message}`);
+    }
+
+    console.log('File uploaded successfully:', uploadData.path);
+
     // Extract text based on file type
     let resumeText = '';
     if (resumeFile.type === 'application/pdf') {
       resumeText = await extractTextFromPdf(fileContent);
+    } else if (resumeFile.type.includes('wordprocessingml') || resumeFile.name.endsWith('.docx')) {
+      resumeText = await extractTextFromDocx(fileContent);
     } else if (resumeFile.type.includes('text') || resumeFile.name.endsWith('.txt')) {
       resumeText = new TextDecoder().decode(fileContent);
     } else {
-      throw new Error('Unsupported file type. Please upload PDF or text files.');
+      throw new Error('Unsupported file type. Please upload PDF, DOCX, or text files.');
     }
 
     console.log('Text extracted, processing with AI...');
@@ -236,7 +271,7 @@ serve(async (req) => {
 
     console.log('AI extraction complete, saving to database...');
 
-    // Store in Supabase
+    // Store extracted data in resume_extractions table
     const { data: extractionRecord, error: dbError } = await supabase
       .from('resume_extractions')
       .insert({
@@ -261,7 +296,8 @@ serve(async (req) => {
       extraction_id: extractionRecord.id,
       extracted_data: extractedData,
       confidence_score: 0.85,
-      message: 'Resume processed successfully'
+      message: 'Resume processed successfully',
+      file_path: uploadData.path
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

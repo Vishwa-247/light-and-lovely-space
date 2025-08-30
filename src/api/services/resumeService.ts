@@ -1,4 +1,4 @@
-import { apiClient } from '../client';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ResumeAnalysisRequest {
   jobRole: string;
@@ -32,13 +32,12 @@ export interface ResumeAnalysisResponse {
 }
 
 export interface ProfileExtractionResponse {
-  personalInfo: any;
-  experience: any[];
-  education: any[];
-  projects: any[];
-  skills: string[];
-  certifications: any[];
-  resumeData: any;
+  success: boolean;
+  extraction_id: string;
+  extracted_data: any;
+  confidence_score: number;
+  message: string;
+  file_path: string;
 }
 
 export const resumeService = {
@@ -69,22 +68,31 @@ export const resumeService = {
   },
 
   async extractProfileData(file: File, userId: string): Promise<ProfileExtractionResponse> {
+    console.log('Extracting profile data from resume...');
+    
     const formData = new FormData();
     formData.append('resume', file);
     formData.append('user_id', userId);
 
-    const response = await fetch('/api/resume/extract-profile', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-      },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('resume-extractor', {
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to extract profile data');
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to extract profile data');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Failed to extract profile data');
+      }
+
+      console.log('Profile extraction successful:', data);
+      return data;
+    } catch (error) {
+      console.error('Resume extraction error:', error);
+      throw error;
     }
-
-    return response.json();
   },
 };

@@ -14,7 +14,7 @@ import { useResumeExtraction } from "@/hooks/useResumeExtraction";
 import { ExtractedResumeData } from "@/types/resume";
 
 const EnhancedResumeUpload = () => {
-  const { profile, uploadResume } = useProfile();
+  const { profile, uploadResume, applyExtractedData } = useProfile();
   const { currentExtraction, createExtraction, isLoading: extractionLoading } = useResumeExtraction();
   const { toast } = useToast();
   
@@ -93,14 +93,14 @@ const EnhancedResumeUpload = () => {
       clearInterval(uploadInterval);
       setUploadProgress(95);
       
-      if (result?.success && result?.data) {
+      if (result?.success && result?.extracted_data) {
         setProcessingStage('analyzing');
         
         // Create extraction record in database
-        const extraction = await createExtraction(result.resumeId || 'temp', result.data);
+        const extraction = await createExtraction(result.extraction_id || 'temp', result.extracted_data);
         
         if (extraction) {
-          setExtractedData(result.data);
+          setExtractedData(result.extracted_data);
           setProcessingStage('complete');
           setUploadProgress(100);
           
@@ -152,15 +152,26 @@ const EnhancedResumeUpload = () => {
   };
 
   const handleConfirmExtraction = async () => {
-    setShowConfirmation(false);
-    setExtractedData(null);
-    setCurrentFile(null);
-    setUploadProgress(0);
+    if (!extractedData) return;
     
-    toast({
-      title: "Profile Updated! ✨",
-      description: "Your profile has been enhanced with AI-extracted data.",
-    });
+    try {
+      // Apply the extracted data to the user's profile
+      const success = await applyExtractedData(extractedData);
+      
+      if (success) {
+        setShowConfirmation(false);
+        setExtractedData(null);
+        setCurrentFile(null);
+        setUploadProgress(0);
+        
+        toast({
+          title: "Profile Updated! ✨",
+          description: "Your profile has been enhanced with AI-extracted data.",
+        });
+      }
+    } catch (error) {
+      console.error('Error applying extracted data:', error);
+    }
   };
 
   const handleCancelExtraction = async () => {
