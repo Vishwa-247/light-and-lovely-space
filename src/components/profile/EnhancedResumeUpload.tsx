@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Upload, FileText, Trash2, CheckCircle, AlertCircle, Sparkles, Download, Eye, Loader2, Brain, Zap } from "lucide-react";
+import { Upload, FileText, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import ResumePreview from "./ResumePreview";
@@ -348,83 +348,6 @@ const EnhancedResumeUpload = () => {
         </div>
       )}
 
-      {/* Features Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="text-center p-4">
-          <div className="mx-auto mb-3 p-2 bg-blue-100 rounded-full w-fit">
-            <Brain className="h-6 w-6 text-blue-600" />
-          </div>
-          <h3 className="font-medium mb-1">AI-Powered Extraction</h3>
-          <p className="text-sm text-muted-foreground">
-            Advanced AI understands your resume structure and extracts relevant information
-          </p>
-        </Card>
-        
-        <Card className="text-center p-4">
-          <div className="mx-auto mb-3 p-2 bg-green-100 rounded-full w-fit">
-            <Zap className="h-6 w-6 text-green-600" />
-          </div>
-          <h3 className="font-medium mb-1">Smart Auto-Fill</h3>
-          <p className="text-sm text-muted-foreground">
-            Automatically populate your profile sections with extracted data
-          </p>
-        </Card>
-        
-        <Card className="text-center p-4">
-          <div className="mx-auto mb-3 p-2 bg-purple-100 rounded-full w-fit">
-            <Eye className="h-6 w-6 text-purple-600" />
-          </div>
-          <h3 className="font-medium mb-1">Review & Confirm</h3>
-          <p className="text-sm text-muted-foreground">
-            Review all extracted data before applying it to your profile
-          </p>
-        </Card>
-      </div>
-
-      {/* Tips Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            Optimization Tips
-          </CardTitle>
-          <CardDescription>
-            Follow these guidelines for the best AI extraction results
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                Use a standard resume format with clear sections
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                Include specific skills, technologies, and tools
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                List measurable achievements and results
-              </li>
-            </ul>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                Use consistent date formats (MM/YYYY)
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                Include contact information at the top
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                Keep file size under 10MB for faster processing
-              </li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

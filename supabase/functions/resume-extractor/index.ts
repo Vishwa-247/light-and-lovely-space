@@ -275,12 +275,19 @@ serve(async (req) => {
 
   try {
     console.log('Processing resume extraction request');
+    console.log('Request method:', req.method);
+    console.log('Content-Type:', req.headers.get('content-type'));
     
     const formData = await req.formData();
     const resumeFile = formData.get('resume') as File;
     const userId = formData.get('user_id') as string;
 
+    console.log('Form data received:');
+    console.log('- Resume file:', resumeFile ? `${resumeFile.name} (${resumeFile.size} bytes)` : 'null');
+    console.log('- User ID:', userId || 'null');
+
     if (!resumeFile || !userId) {
+      console.error('Missing required fields:', { resumeFile: !!resumeFile, userId: !!userId });
       throw new Error('Missing required fields: resume file and user_id');
     }
 

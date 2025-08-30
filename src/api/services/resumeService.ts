@@ -75,14 +75,26 @@ export const resumeService = {
     formData.append('user_id', userId);
 
     try {
-      const { data, error } = await supabase.functions.invoke('resume-extractor', {
+      // Get auth token for direct API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Use direct fetch to properly send FormData with files
+      const response = await fetch(`https://jwmsgrodliegekbrhvgt.supabase.co/functions/v1/resume-extractor`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: formData,
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(error.message || 'Failed to extract profile data');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
 
       if (!data || !data.success) {
         throw new Error(data?.error || 'Failed to extract profile data');
