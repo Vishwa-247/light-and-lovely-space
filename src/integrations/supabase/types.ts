@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      profile_analytics: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          section_name: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          section_name?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          section_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,6 +67,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      resume_extractions: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          confidence_score: number | null
+          created_at: string
+          extracted_data: Json
+          extraction_type: string
+          id: string
+          resume_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data: Json
+          extraction_type?: string
+          id?: string
+          resume_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          extracted_data?: Json
+          extraction_type?: string
+          id?: string
+          resume_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_extractions_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "user_resumes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_certifications: {
         Row: {
@@ -169,47 +246,56 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          ai_suggestions: Json | null
           completion_percentage: number | null
           created_at: string
           email: string | null
           full_name: string | null
           github_url: string | null
           id: string
+          last_ai_analysis: string | null
           linkedin_url: string | null
           location: string | null
           phone: string | null
           portfolio_url: string | null
           professional_summary: string | null
+          profile_strength_score: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_suggestions?: Json | null
           completion_percentage?: number | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           github_url?: string | null
           id?: string
+          last_ai_analysis?: string | null
           linkedin_url?: string | null
           location?: string | null
           phone?: string | null
           portfolio_url?: string | null
           professional_summary?: string | null
+          profile_strength_score?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_suggestions?: Json | null
           completion_percentage?: number | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           github_url?: string | null
           id?: string
+          last_ai_analysis?: string | null
           linkedin_url?: string | null
           location?: string | null
           phone?: string | null
           portfolio_url?: string | null
           professional_summary?: string | null
+          profile_strength_score?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -263,8 +349,10 @@ export type Database = {
       user_resumes: {
         Row: {
           ai_analysis: Json | null
+          ai_suggestions: Json | null
           created_at: string
           extracted_text: string | null
+          extraction_status: string | null
           file_path: string
           file_size: number | null
           filename: string
@@ -278,8 +366,10 @@ export type Database = {
         }
         Insert: {
           ai_analysis?: Json | null
+          ai_suggestions?: Json | null
           created_at?: string
           extracted_text?: string | null
+          extraction_status?: string | null
           file_path: string
           file_size?: number | null
           filename: string
@@ -293,8 +383,10 @@ export type Database = {
         }
         Update: {
           ai_analysis?: Json | null
+          ai_suggestions?: Json | null
           created_at?: string
           extracted_text?: string | null
+          extraction_status?: string | null
           file_path?: string
           file_size?: number | null
           filename?: string
@@ -343,7 +435,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_profile_completion: {
+        Args: { user_profile_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
