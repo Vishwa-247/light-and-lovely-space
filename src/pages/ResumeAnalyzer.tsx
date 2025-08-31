@@ -71,8 +71,8 @@ export default function ResumeAnalyzer() {
       formData.append('job_role', jobRole);
       formData.append('job_description', jobDescription);
 
-      // Call Groq-powered resume analyzer
-      const response = await fetch('/api/resume-groq/analyze-resume', {
+      // Call resume analyzer via API Gateway
+      const response = await fetch('http://localhost:8000/resume/analyze', {
         method: 'POST',
         body: formData,
       });
@@ -83,12 +83,8 @@ export default function ResumeAnalyzer() {
 
       const result = await response.json();
       
-      if (!result.success) {
-        throw new Error(result.message || 'Analysis failed');
-      }
-
-      // Transform the result to match our expected format
-      const analysisData = result.data.analysis;
+      // The backend returns the analysis directly
+      const analysisData = result.analysis;
       setAnalysisResult({
         score: analysisData.overall_score,
         jobMatchScore: analysisData.job_match_score,
@@ -100,7 +96,7 @@ export default function ResumeAnalyzer() {
         keywords: analysisData.keywords_found,
         missingKeywords: analysisData.missing_keywords,
         jobRole: jobRole,
-        parsedContent: result.data.extracted_text,
+        parsedContent: result.extracted_text,
         deepAnalysis: analysisData.deep_analysis,
         sectionsAnalysis: analysisData.sections_analysis,
         improvementPriority: analysisData.improvement_priority,

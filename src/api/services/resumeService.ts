@@ -52,12 +52,9 @@ export const resumeService = {
       formData.append('user_id', data.userId);
     }
 
-    const response = await fetch('/api/resume/analyze', {
+    const response = await fetch('http://localhost:8000/resume/analyze', {
       method: 'POST',
       body: formData,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-      },
     });
 
     if (!response.ok) {
