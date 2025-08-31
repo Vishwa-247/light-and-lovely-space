@@ -102,11 +102,11 @@ const DSASheet = () => {
                                 size="sm"
                                 onClick={(e) => {
                                   e.preventDefault();
-                                  toggleFavorite('topics', topic.id);
+                                  toggleFavorite('topic', topic.id);
                                 }}
                                 className="text-yellow-500 hover:text-yellow-600"
                               >
-                                <Star className={`w-4 h-4 ${isFavorite('topics', topic.id) ? 'fill-current' : ''}`} />
+                                <Star className={`w-4 h-4 ${isFavorite('topic', topic.id) ? 'fill-current' : ''}`} />
                               </Button>
                               <Badge variant="outline" className="text-xs">
                                 {String(index + 1).padStart(2, '0')}
@@ -178,11 +178,11 @@ const DSASheet = () => {
                                     size="sm"
                                     onClick={(e) => {
                                       e.preventDefault();
-                                      toggleFavorite('companies', company.id);
+                                      toggleFavorite('company', company.id);
                                     }}
                                     className="text-yellow-500 hover:text-yellow-600"
                                   >
-                                    <Star className={`w-4 h-4 ${isFavorite('companies', company.id) ? 'fill-current' : ''}`} />
+                                    <Star className={`w-4 h-4 ${isFavorite('company', company.id) ? 'fill-current' : ''}`} />
                                   </Button>
                                   <Badge variant="outline" className="text-xs">
                                     {String(index + 1).padStart(2, '0')}

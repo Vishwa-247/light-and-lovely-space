@@ -11,17 +11,18 @@ import { Link, useParams } from "react-router-dom";
 import InlineFeedback from "@/components/course/InlineFeedback";
 import RouteFilters from "@/components/dsa/RouteFilters";
 import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 import { dsaService } from "@/api/services/dsaService";
 import { toast } from "sonner";
 
 const CompanyProblems = () => {
   const { companyId } = useParams();
   const { user } = useAuth();
+  const { isFavorite, toggleFavorite, favorites } = useFavorites();
   const company = companies.find(c => c.id === companyId);
   
   const [completedProblems, setCompletedProblems] = useState(new Set<string>());
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [filters, setFilters] = useState({ difficulty: [] });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -44,28 +45,6 @@ const CompanyProblems = () => {
     }
   }, [completedProblems]);
 
-  const toggleFavorite = useCallback(async (problemName: string) => {
-    if (!user) {
-      toast.error("Please sign in to add favorites");
-      return;
-    }
-
-    try {
-      const isFavorite = favorites.includes(problemName);
-      if (isFavorite) {
-        await dsaService.removeFromFavorites(user.id, problemName);
-        setFavorites(prev => prev.filter(fav => fav !== problemName));
-        toast.success("Removed from favorites");
-      } else {
-        await dsaService.addToFavorites(user.id, problemName);
-        setFavorites(prev => [...prev, problemName]);
-        toast.success("Added to favorites");
-      }
-    } catch (error) {
-      toast.error("Failed to update favorites");
-    }
-  }, [user, favorites]);
-
   // Filter problems based on difficulty and favorites
   const filteredProblems = useMemo(() => {
     if (!company) return [];
@@ -82,12 +61,12 @@ const CompanyProblems = () => {
     // Filter by favorites
     if (showFavoritesOnly) {
       problems = problems.filter(problem => 
-        favorites.includes(problem.name)
+        isFavorite('problem', problem.name)
       );
     }
     
     return problems;
-  }, [company, filters, favorites, showFavoritesOnly]);
+  }, [company, filters, isFavorite, showFavoritesOnly]);
 
   if (!company) {
     return (
@@ -172,8 +151,8 @@ const CompanyProblems = () => {
           <RouteFilters
             filters={filters}
             onFiltersChange={setFilters}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
+            favorites={favorites.problems}
+            onToggleFavorite={(problemName) => toggleFavorite('problem', problemName)}
             showFavoritesOnly={showFavoritesOnly}
             onShowFavoritesChange={setShowFavoritesOnly}
           />
@@ -182,7 +161,7 @@ const CompanyProblems = () => {
           <div className="space-y-4">
             {filteredProblems.map((problem, index) => {
                   const isCompleted = completedProblems.has(problem.name);
-                  const isFavorite = favorites.includes(problem.name);
+                  const isProblemFavorite = isFavorite('problem', problem.name);
                   
                   return (
                     <Card 
@@ -225,12 +204,12 @@ const CompanyProblems = () => {
                           
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => toggleFavorite(problem.name)}
+                              onClick={() => toggleFavorite('problem', problem.name)}
                               className="transition-colors hover:scale-110"
                             >
                               <Star 
                                 className={`w-5 h-5 ${
-                                  isFavorite 
+                                  isProblemFavorite 
                                     ? 'text-yellow-500 fill-yellow-500' 
                                     : 'text-muted-foreground hover:text-yellow-500'
                                 }`} 

@@ -8,10 +8,21 @@ import { dsaTopics } from "@/data/dsaProblems";
 import { companies } from "@/data/companyProblems";
 
 const FavoritesTable = () => {
-  const { favorites, removeFromFavorites } = useFavorites();
+  const { favorites, loading, removeFromFavorites } = useFavorites();
 
   const favoriteTopics = dsaTopics.filter(topic => favorites.topics.includes(topic.id));
   const favoriteCompanies = companies.filter(company => favorites.companies.includes(company.id));
+
+  if (loading) {
+    return (
+      <Card className="bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-12 text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading favorites...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (favorites.topics.length === 0 && favorites.companies.length === 0 && favorites.problems.length === 0) {
     return (
@@ -52,7 +63,7 @@ const FavoritesTable = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => removeFromFavorites('topics', topic.id)}
+                    onClick={() => removeFromFavorites('topic', topic.id)}
                     className="text-yellow-500 hover:text-yellow-600"
                   >
                     <Star className="w-4 h-4 fill-current" />
@@ -89,7 +100,7 @@ const FavoritesTable = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => removeFromFavorites('companies', company.id)}
+                    onClick={() => removeFromFavorites('company', company.id)}
                     className="text-yellow-500 hover:text-yellow-600"
                   >
                     <Star className="w-4 h-4 fill-current" />
@@ -120,7 +131,7 @@ const FavoritesTable = () => {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => removeFromFavorites('problems', problemName)}
+                    onClick={() => removeFromFavorites('problem', problemName)}
                     className="text-yellow-500 hover:text-yellow-600"
                   >
                     <Star className="w-4 h-4 fill-current" />

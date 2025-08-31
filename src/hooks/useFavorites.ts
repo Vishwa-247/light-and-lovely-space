@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { toast } from 'sonner';
+
+type FavoriteType = 'topic' | 'company' | 'problem';
 
 interface FavoritesData {
   topics: string[];
@@ -12,53 +17,132 @@ export const useFavorites = () => {
     companies: [],
     problems: []
   });
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Load favorites from localStorage on mount
+  // Load favorites from database on mount and when user changes
   useEffect(() => {
-    const stored = localStorage.getItem('dsa-favorites');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setFavorites(parsed);
-      } catch (error) {
-        console.error('Failed to parse favorites from localStorage:', error);
+    if (user) {
+      loadFavorites();
+    } else {
+      setFavorites({ topics: [], companies: [], problems: [] });
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadFavorites = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('dsa_favorites')
+        .select('item_type, item_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const favData: FavoritesData = {
+        topics: [],
+        companies: [],
+        problems: []
+      };
+
+      data?.forEach(fav => {
+        if (fav.item_type === 'topic') {
+          favData.topics.push(fav.item_id);
+        } else if (fav.item_type === 'company') {
+          favData.companies.push(fav.item_id);
+        } else if (fav.item_type === 'problem') {
+          favData.problems.push(fav.item_id);
+        }
+      });
+
+      setFavorites(favData);
+    } catch (error) {
+      console.error('Failed to load favorites:', error);
+      toast.error('Failed to load favorites');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToFavorites = async (type: FavoriteType, id: string) => {
+    if (!user) {
+      toast.error('Please sign in to add favorites');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('dsa_favorites')
+        .insert({
+          user_id: user.id,
+          item_type: type,
+          item_id: id
+        });
+
+      if (error) throw error;
+
+      setFavorites(prev => ({
+        ...prev,
+        [type + 's' as keyof FavoritesData]: [...prev[type + 's' as keyof FavoritesData], id]
+      }));
+
+      toast.success('Added to favorites');
+    } catch (error: any) {
+      if (error.code === '23505') {
+        // Already exists
+        toast.info('Already in favorites');
+      } else {
+        console.error('Failed to add favorite:', error);
+        toast.error('Failed to add to favorites');
       }
     }
-  }, []);
-
-  // Save favorites to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('dsa-favorites', JSON.stringify(favorites));
-  }, [favorites]);
-
-  const addToFavorites = (type: keyof FavoritesData, id: string) => {
-    setFavorites(prev => ({
-      ...prev,
-      [type]: [...prev[type], id]
-    }));
   };
 
-  const removeFromFavorites = (type: keyof FavoritesData, id: string) => {
-    setFavorites(prev => ({
-      ...prev,
-      [type]: prev[type].filter(item => item !== id)
-    }));
+  const removeFromFavorites = async (type: FavoriteType, id: string) => {
+    if (!user) {
+      toast.error('Please sign in to manage favorites');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('dsa_favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('item_type', type)
+        .eq('item_id', id);
+
+      if (error) throw error;
+
+      setFavorites(prev => ({
+        ...prev,
+        [type + 's' as keyof FavoritesData]: prev[type + 's' as keyof FavoritesData].filter(item => item !== id)
+      }));
+
+      toast.success('Removed from favorites');
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+      toast.error('Failed to remove from favorites');
+    }
   };
 
-  const isFavorite = (type: keyof FavoritesData, id: string) => {
-    return favorites[type].includes(id);
+  const isFavorite = (type: FavoriteType, id: string) => {
+    return favorites[type + 's' as keyof FavoritesData].includes(id);
   };
 
-  const toggleFavorite = (type: keyof FavoritesData, id: string) => {
+  const toggleFavorite = async (type: FavoriteType, id: string) => {
     if (isFavorite(type, id)) {
-      removeFromFavorites(type, id);
+      await removeFromFavorites(type, id);
     } else {
-      addToFavorites(type, id);
+      await addToFavorites(type, id);
     }
   };
 
   return {
     favorites,
+    loading,
     addToFavorites,
     removeFromFavorites,
     isFavorite,
