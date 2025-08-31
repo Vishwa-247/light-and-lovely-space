@@ -24,6 +24,9 @@ export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
 
   // Filter topics
   const filteredTopics = useMemo(() => {
+    if (!topics || !Array.isArray(topics)) {
+      return [];
+    }
     return topics.filter(topic => {
       // Search filter
       if (searchQuery && !topic.title.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -46,6 +49,9 @@ export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
 
   // Filter companies
   const filteredCompanies = useMemo(() => {
+    if (!companies || !Array.isArray(companies)) {
+      return [];
+    }
     return companies.filter(company => {
       // Search filter
       if (searchQuery && !company.title.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -59,6 +65,9 @@ export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
 
       // Difficulty filter - check if company has problems matching the difficulty
       if (filters.difficulty.length > 0) {
+        if (!company.problems || !Array.isArray(company.problems)) {
+          return false;
+        }
         const hasMatchingProblems = company.problems.some(problem => 
           filters.difficulty.includes(problem.difficulty)
         );
@@ -73,11 +82,17 @@ export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
 
   // Get available company names for filter dropdown
   const availableCompanies = useMemo(() => {
+    if (!companies || !Array.isArray(companies)) {
+      return [];
+    }
     return companies.map(company => company.title).sort();
   }, [companies]);
 
   // Filter problems within companies based on difficulty
   const getFilteredProblemsForCompany = (company: Company) => {
+    if (!company.problems || !Array.isArray(company.problems)) {
+      return [];
+    }
     if (filters.difficulty.length === 0) {
       return company.problems;
     }
