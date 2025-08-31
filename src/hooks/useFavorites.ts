@@ -129,7 +129,8 @@ export const useFavorites = () => {
   };
 
   const isFavorite = (type: FavoriteType, id: string) => {
-    return favorites[type + 's' as keyof FavoritesData].includes(id);
+    const favArray = favorites[type + 's' as keyof FavoritesData];
+    return favArray ? favArray.includes(id) : false;
   };
 
   const toggleFavorite = async (type: FavoriteType, id: string) => {
