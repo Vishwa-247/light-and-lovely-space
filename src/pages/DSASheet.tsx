@@ -9,16 +9,10 @@ import { ChevronRight, Building2, BookOpen, Search, Star, Filter } from "lucide-
 import Container from "@/components/ui/Container";
 import { dsaTopics } from "@/data/dsaProblems";
 import { companies } from "@/data/companyProblems";
-import DSAFilters from "@/components/dsa/DSAFilters";
 import { useDSAFilters } from "@/hooks/useDSAFilters";
-import { dsaService } from "@/api/services/dsaService";
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from "sonner";
 
 const DSASheet = () => {
   const [activeTab, setActiveTab] = useState("topics");
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const { user } = useAuth();
   
   const {
     filters,
@@ -32,66 +26,6 @@ const DSASheet = () => {
     stats
   } = useDSAFilters({ topics: dsaTopics, companies });
 
-  // Load user preferences on mount
-  useEffect(() => {
-    const loadUserPreferences = async () => {
-      if (!user?.id) return;
-
-      try {
-        // Load saved filters
-        const savedFilters = await dsaService.getFilters(user.id);
-        if (savedFilters) {
-          setFilters(savedFilters);
-        }
-
-        // Load favorites
-        const userFavorites = await dsaService.getFavorites(user.id);
-        setFavorites(userFavorites);
-      } catch (error) {
-        console.error('Error loading user preferences:', error);
-      }
-    };
-
-    loadUserPreferences();
-  }, [user?.id, setFilters]);
-
-  // Save filters when they change
-  useEffect(() => {
-    const saveFilters = async () => {
-      if (!user?.id) return;
-
-      try {
-        await dsaService.saveFilters(user.id, filters);
-      } catch (error) {
-        console.error('Error saving filters:', error);
-      }
-    };
-
-    // Debounce the save operation
-    const timeoutId = setTimeout(saveFilters, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [filters, user?.id]);
-
-  const handleToggleFavorite = async (itemId: string) => {
-    if (!user?.id) {
-      toast.error("Please sign in to add favorites");
-      return;
-    }
-
-    try {
-      if (favorites.includes(itemId)) {
-        await dsaService.removeFromFavorites(user.id, itemId);
-        setFavorites(prev => prev.filter(id => id !== itemId));
-        toast.success("Removed from favorites");
-      } else {
-        await dsaService.addToFavorites(user.id, itemId);
-        setFavorites(prev => [...prev, itemId]);
-        toast.success("Added to favorites");
-      }
-    } catch (error) {
-      toast.error("Error updating favorites");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -121,13 +55,6 @@ const DSASheet = () => {
             </div>
           </div>
 
-          {/* Filters */}
-          <DSAFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            availableCompanies={availableCompanies}
-            showCompanyFilters={activeTab === "companies"}
-          />
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -166,17 +93,13 @@ const DSASheet = () => {
                                   {String(index + 1).padStart(2, '0')}
                                 </Badge>
                                 <Badge 
-                                  variant={
-                                    topic.difficulty === 'Easy' ? 'default' : 
-                                    topic.difficulty === 'Medium' ? 'secondary' : 
-                                    'destructive'
-                                  }
-                                  className="text-xs"
+                                  className={`text-xs ${
+                                    topic.difficulty === 'Easy' ? 'badge-easy' : 
+                                    topic.difficulty === 'Medium' ? 'badge-medium' : 
+                                    'badge-hard'
+                                  }`}
                                 >
                                   {topic.difficulty}
-                                </Badge>
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {topic.category}
                                 </Badge>
                               </div>
                             </div>
@@ -201,24 +124,6 @@ const DSASheet = () => {
                           </CardContent>
                         </Card>
                       </Link>
-                      
-                      {/* Favorite Button */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleToggleFavorite(topic.id);
-                        }}
-                        className="absolute top-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-primary/10 transition-colors z-10"
-                      >
-                        <Star 
-                          className={`w-4 h-4 ${
-                            favorites.includes(topic.id) 
-                              ? 'fill-primary text-primary' 
-                              : 'text-muted-foreground hover:text-primary'
-                          }`} 
-                        />
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -286,8 +191,11 @@ const DSASheet = () => {
                                       return (
                                         <Badge 
                                           key={diff}
-                                          variant={diff === 'Easy' ? 'default' : diff === 'Medium' ? 'secondary' : 'destructive'}
-                                          className="text-xs"
+                                          className={`text-xs ${
+                                            diff === 'Easy' ? 'badge-easy' : 
+                                            diff === 'Medium' ? 'badge-medium' : 
+                                            'badge-hard'
+                                          }`}
                                         >
                                           {count} {diff}
                                         </Badge>
@@ -299,24 +207,6 @@ const DSASheet = () => {
                             </CardContent>
                           </Card>
                         </Link>
-                        
-                        {/* Favorite Button */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleToggleFavorite(company.id);
-                          }}
-                          className="absolute top-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border hover:bg-primary/10 transition-colors z-10"
-                        >
-                          <Star 
-                            className={`w-4 h-4 ${
-                              favorites.includes(company.id) 
-                                ? 'fill-primary text-primary' 
-                                : 'text-muted-foreground hover:text-primary'
-                            }`} 
-                          />
-                        </button>
                       </div>
                     );
                   })}
@@ -351,17 +241,6 @@ const DSASheet = () => {
                       </div>
                       <div className="text-sm text-muted-foreground">Topics</div>
                     </div>
-                    {(filters.difficulty.length > 0 || filters.category.length > 0) && (
-                      <>
-                        <div className="w-px h-12 bg-border"></div>
-                        <div>
-                          <div className="text-lg font-bold text-muted-foreground">
-                            Filtered
-                          </div>
-                          <div className="text-xs text-muted-foreground">Results</div>
-                        </div>
-                      </>
-                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-8">

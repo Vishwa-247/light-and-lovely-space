@@ -146,28 +146,24 @@ const DSATopic = () => {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="grid lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <RouteFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-                showFavoritesOnly={showFavoritesOnly}
-                onShowFavoritesChange={setShowFavoritesOnly}
-              />
-            </div>
+          {/* Filters - Positioned at top */}
+          <RouteFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            showFavoritesOnly={showFavoritesOnly}
+            onShowFavoritesChange={setShowFavoritesOnly}
+          />
 
-            {/* Problems List */}
-            <div className="lg:col-span-3">
-              <div className="space-y-3">
-                {filteredProblems.map((problem, index) => {
+          {/* Problems List */}
+          <div className="space-y-3">
+            {filteredProblems.map((problem, index) => {
                   const isCompleted = completedProblems.has(problem.name);
                   const isFavorite = favorites.includes(problem.name);
                   return (
                     <Card 
-                      key={index} 
+                      key={`${topic.id}-${index}`}
                       className={`group hover:shadow-md transition-all duration-200 ${
                         isCompleted ? 'bg-primary/5 border-primary/20' : 'hover:border-primary/20'
                       }`}
@@ -194,12 +190,11 @@ const DSATopic = () => {
                               </h3>
                               {problem.difficulty && (
                                 <Badge 
-                                  variant={
-                                    problem.difficulty === 'Easy' ? 'default' : 
-                                    problem.difficulty === 'Medium' ? 'secondary' : 
-                                    'destructive'
-                                  }
-                                  className="text-xs"
+                                  className={`text-xs ${
+                                    problem.difficulty === 'Easy' ? 'badge-easy' : 
+                                    problem.difficulty === 'Medium' ? 'badge-medium' : 
+                                    'badge-hard'
+                                  }`}
                                 >
                                   {problem.difficulty}
                                 </Badge>
@@ -255,11 +250,9 @@ const DSATopic = () => {
                     </div>
                   )}
                 </Card>
-                  );
-                })}
-              </div>
+                );
+              })}
             </div>
-          </div>
 
           {/* Back Button */}
           <div className="mt-12 text-center">

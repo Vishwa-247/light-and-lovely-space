@@ -43,113 +43,117 @@ const RouteFilters = ({
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return 'text-green-600 dark:text-green-400';
-      case 'Medium': return 'text-yellow-600 dark:text-yellow-400';
-      case 'Hard': return 'text-red-600 dark:text-red-400';
+      case 'Easy': return 'text-green-500/80 dark:text-green-400/80';
+      case 'Medium': return 'text-yellow-500/80 dark:text-yellow-400/80';
+      case 'Hard': return 'text-red-500/80 dark:text-red-400/80';
       default: return '';
     }
   };
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border-primary/10 sticky top-4 z-10">
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-foreground">Filters</span>
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="text-xs">
-                {filters.difficulty.length + (showFavoritesOnly ? 1 : 0)}
-              </Badge>
-            )}
-          </div>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="text-xs text-muted-foreground hover:text-destructive"
-            >
-              Clear All
-            </Button>
-          )}
-        </div>
-
-        {/* Favorites Toggle */}
-        <div className="mb-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="favorites"
-              checked={showFavoritesOnly}
-              onCheckedChange={onShowFavoritesChange}
-            />
-            <label
-              htmlFor="favorites"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
-            >
-              <Star className="w-4 h-4 text-yellow-500" />
-              Show Favorites Only
-            </label>
-            {favorites.length > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {favorites.length}
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Difficulty Filter */}
-        <div className="space-y-3">
-          <h4 className="font-medium text-foreground text-sm">Difficulty Level</h4>
-          <div className="grid grid-cols-3 gap-2">
-            {difficulties.map((difficulty) => (
-              <div key={difficulty} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`difficulty-${difficulty}`}
-                  checked={filters.difficulty.includes(difficulty)}
-                  onCheckedChange={(checked) => 
-                    handleDifficultyChange(difficulty, checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor={`difficulty-${difficulty}`}
-                  className={`text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${getDifficultyColor(difficulty)}`}
-                >
-                  {difficulty}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Active Filters */}
-        {hasActiveFilters && (
-          <div className="mt-4 pt-3 border-t border-border">
-            <div className="flex flex-wrap gap-1">
-              {showFavoritesOnly && (
-                <Badge variant="default" className="gap-1 text-xs">
-                  <Star className="w-3 h-3" />
-                  Favorites
-                  <X 
-                    className="w-3 h-3 cursor-pointer hover:text-red-300" 
-                    onClick={() => onShowFavoritesChange(false)}
-                  />
+    <div className="mb-6">
+      <Card className="bg-card/50 backdrop-blur-sm border-primary/10">
+        <div className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-foreground">Filters</span>
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="text-xs">
+                  {filters.difficulty.length + (showFavoritesOnly ? 1 : 0)}
                 </Badge>
               )}
-              {filters.difficulty.map((difficulty) => (
-                <Badge key={difficulty} variant="secondary" className="gap-1 text-xs">
-                  {difficulty}
-                  <X 
-                    className="w-3 h-3 cursor-pointer hover:text-red-300" 
-                    onClick={() => handleDifficultyChange(difficulty, false)}
-                  />
-                </Badge>
-              ))}
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Favorites Toggle */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="favorites"
+                  checked={showFavoritesOnly}
+                  onCheckedChange={onShowFavoritesChange}
+                />
+                <label
+                  htmlFor="favorites"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
+                >
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Favorites
+                  {favorites.length > 0 && (
+                    <Badge variant="outline" className="text-xs ml-1">
+                      {favorites.length}
+                    </Badge>
+                  )}
+                </label>
+              </div>
+
+              {/* Difficulty Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Difficulty:</span>
+                <div className="flex gap-2">
+                  {difficulties.map((difficulty) => (
+                    <div key={difficulty} className="flex items-center space-x-1">
+                      <Checkbox
+                        id={`difficulty-${difficulty}`}
+                        checked={filters.difficulty.includes(difficulty)}
+                        onCheckedChange={(checked) => 
+                          handleDifficultyChange(difficulty, checked as boolean)
+                        }
+                      />
+                      <label
+                        htmlFor={`difficulty-${difficulty}`}
+                        className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${getDifficultyColor(difficulty)}`}
+                      >
+                        {difficulty}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Clear All
+                </Button>
+              )}
             </div>
           </div>
-        )}
-      </div>
-    </Card>
+
+
+          {/* Active Filters */}
+          {hasActiveFilters && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <div className="flex flex-wrap gap-2">
+                {showFavoritesOnly && (
+                  <Badge variant="default" className="gap-1 text-xs">
+                    <Star className="w-3 h-3" />
+                    Favorites
+                    <X 
+                      className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                      onClick={() => onShowFavoritesChange(false)}
+                    />
+                  </Badge>
+                )}
+                {filters.difficulty.map((difficulty) => (
+                  <Badge key={difficulty} variant="secondary" className="gap-1 text-xs">
+                    {difficulty}
+                    <X 
+                      className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                      onClick={() => handleDifficultyChange(difficulty, false)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 };
 

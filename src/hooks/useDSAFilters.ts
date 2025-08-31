@@ -4,7 +4,6 @@ import { Company } from '@/data/companyProblems';
 
 interface Filters {
   difficulty: string[];
-  category: string[];
   companies: string[];
 }
 
@@ -16,7 +15,6 @@ interface UseDSAFiltersProps {
 export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
   const [filters, setFilters] = useState<Filters>({
     difficulty: [],
-    category: [],
     companies: []
   });
 
@@ -38,10 +36,6 @@ export const useDSAFilters = ({ topics, companies }: UseDSAFiltersProps) => {
         return false;
       }
 
-      // Category filter
-      if (filters.category.length > 0 && !filters.category.includes(topic.category)) {
-        return false;
-      }
 
       return true;
     });

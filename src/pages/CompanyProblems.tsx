@@ -168,23 +168,19 @@ const CompanyProblems = () => {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="grid lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <RouteFilters
-                filters={filters}
-                onFiltersChange={setFilters}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-                showFavoritesOnly={showFavoritesOnly}
-                onShowFavoritesChange={setShowFavoritesOnly}
-              />
-            </div>
-            
-            {/* Problems List */}
-            <div className="lg:col-span-3">
-              <div className="space-y-4">
-                {filteredProblems.map((problem, index) => {
+          {/* Filters - Positioned at top */}
+          <RouteFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            showFavoritesOnly={showFavoritesOnly}
+            onShowFavoritesChange={setShowFavoritesOnly}
+          />
+          
+          {/* Problems List */}
+          <div className="space-y-4">
+            {filteredProblems.map((problem, index) => {
                   const isCompleted = completedProblems.has(problem.name);
                   const isFavorite = favorites.includes(problem.name);
                   
@@ -215,12 +211,11 @@ const CompanyProblems = () => {
                                   {problem.name}
                                 </h3>
                                 <Badge 
-                                  variant={
-                                    problem.difficulty === 'Easy' ? 'default' : 
-                                    problem.difficulty === 'Medium' ? 'secondary' : 
-                                    'destructive'
-                                  }
-                                  className="text-xs"
+                                  className={`text-xs ${
+                                    problem.difficulty === 'Easy' ? 'badge-easy' : 
+                                    problem.difficulty === 'Medium' ? 'badge-medium' : 
+                                    'badge-hard'
+                                  }`}
                                 >
                                   {problem.difficulty}
                                 </Badge>
@@ -279,8 +274,6 @@ const CompanyProblems = () => {
                   );
                 })}
               </div>
-            </div>
-          </div>
 
           {/* Back Button */}
           <div className="mt-12 text-center">
