@@ -160,95 +160,102 @@ export const useProfile = () => {
   };
 
   const updateProfile = async (updates: Partial<ProfileFormData>) => {
-    console.log('updateProfile called with user:', { userId: user?.id, hasProfile: !!profile });
+    console.log('🔄 updateProfile called:', { 
+      userId: user?.id, 
+      hasProfile: !!profile,
+      updateKeys: Object.keys(updates)
+    });
     
-    if (!user) {
-      const error = new Error('User not authenticated');
-      console.error('updateProfile failed: no user');
+    if (!user?.id) {
+      const error = new Error('Authentication required - please sign in again');
+      console.error('❌ updateProfile failed: no authenticated user');
       throw error;
     }
 
-    if (!profile) {
-      const error = new Error('Profile not loaded');
-      console.error('updateProfile failed: no profile');
-      throw error;
-    }
-
-    // Verify current session is valid
+    // Verify current session is valid before making database calls
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Current session check:', { hasSession: !!session, sessionError });
+    console.log('🔐 Session validation:', { 
+      hasSession: !!session, 
+      sessionValid: session && session.expires_at ? session.expires_at > Date.now() / 1000 : false,
+      sessionError: !!sessionError 
+    });
     
-    if (sessionError || !session) {
-      const error = new Error('Session expired or invalid');
-      console.error('updateProfile failed: invalid session', sessionError);
+    if (sessionError || !session || !session.access_token) {
+      const error = new Error('Session expired - please sign in again');
+      console.error('❌ updateProfile failed: invalid session', sessionError);
       throw error;
     }
 
-    console.log('Updating profile with:', updates);
     setIsLoading(true);
     
     try {
-      const updatedProfile: UserProfile = {
-        ...profile,
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      };
-
-      const upsertData = {
+      // Build the update data from the updates passed in
+      const upsertData: any = {
         user_id: user.id,
-        full_name: updatedProfile.personalInfo.fullName,
-        email: updatedProfile.personalInfo.email,
-        phone: updatedProfile.personalInfo.phone,
-        location: updatedProfile.personalInfo.location,
-        linkedin_url: updatedProfile.personalInfo.linkedin,
-        github_url: updatedProfile.personalInfo.github,
-        portfolio_url: updatedProfile.personalInfo.portfolio,
         updated_at: new Date().toISOString(),
       };
 
-      console.log('Attempting upsert with data:', upsertData);
+      // Map the updates to database columns
+      if (updates.personalInfo) {
+        const { personalInfo } = updates;
+        if (personalInfo.fullName !== undefined) upsertData.full_name = personalInfo.fullName;
+        if (personalInfo.email !== undefined) upsertData.email = personalInfo.email;
+        if (personalInfo.phone !== undefined) upsertData.phone = personalInfo.phone;
+        if (personalInfo.location !== undefined) upsertData.location = personalInfo.location;
+        if (personalInfo.linkedin !== undefined) upsertData.linkedin_url = personalInfo.linkedin;
+        if (personalInfo.github !== undefined) upsertData.github_url = personalInfo.github;
+        if (personalInfo.portfolio !== undefined) upsertData.portfolio_url = personalInfo.portfolio;
+      }
 
-      // Update in Supabase database with explicit user authentication
-      const { data, error: profileError, count } = await supabase
+      console.log('📝 Upsert data:', upsertData);
+
+      // Use upsert with proper conflict resolution
+      const { data, error: profileError } = await supabase
         .from('user_profiles')
         .upsert(upsertData, { 
           onConflict: 'user_id',
-          ignoreDuplicates: false 
+          ignoreDuplicates: false,
+          defaultToNull: false
         })
-        .select()
+        .select('*')
         .single();
 
-      console.log('Upsert result:', { data, error: profileError, count, affectedRows: count });
+      console.log('✅ Upsert result:', { 
+        success: !!data, 
+        error: !!profileError,
+        data: data ? 'received' : 'none'
+      });
 
       if (profileError) {
-        console.error('Profile update error details:', {
+        console.error('❌ Database error details:', {
+          code: profileError.code,
           message: profileError.message,
           details: profileError.details,
-          hint: profileError.hint,
-          code: profileError.code
+          hint: profileError.hint
         });
-        throw new Error(`Database error: ${profileError.message}`);
+        
+        // Handle specific error types
+        if (profileError.code === '23505') {
+          throw new Error('Profile already exists - this should not happen');
+        } else if (profileError.code === '42501') {
+          throw new Error('Permission denied - please check your authentication');
+        } else {
+          throw new Error(`Database error: ${profileError.message}`);
+        }
       }
 
       if (!data) {
-        console.error('No data returned from upsert - possible RLS policy issue');
-        throw new Error('Profile update failed - no data returned. This may be an authentication issue.');
+        console.error('❌ No data returned from upsert - possible RLS policy issue');
+        throw new Error('Update failed - unable to save changes. Please try signing out and back in.');
       }
 
-      setProfile(updatedProfile);
+      console.log('✅ Profile updated successfully');
       
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      // Reload profile to get fresh data
+      await loadProfile();
       
     } catch (error) {
-      console.error("Failed to update profile:", error);
-      toast({
-        title: "Error",
-        description: `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
+      console.error('❌ updateProfile error:', error);
       throw error;
     } finally {
       setIsLoading(false);

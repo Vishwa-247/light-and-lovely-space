@@ -39,19 +39,16 @@ export default function PersonalInfoForm() {
   });
 
   const onSubmit = async (data: PersonalInfoFormData) => {
-    console.log('PersonalInfoForm onSubmit called with:', data);
-    console.log('Current profile state:', { hasProfile: !!profile, isLoading });
-    
     try {
       await updateProfile({
         personalInfo: data as PersonalInfo,
       });
+      
       toast({
         title: "Success",
-        description: "Personal information updated successfully",
+        description: "Personal information updated successfully!",
       });
     } catch (error) {
-      console.error('PersonalInfoForm submission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: "Error",

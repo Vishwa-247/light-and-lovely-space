@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -12,71 +12,30 @@ export interface AuthState {
   signingOut: boolean;
 }
 
-const AUTH_CACHE_KEY = 'supabase_auth_cache';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-interface CachedAuth {
-  session: Session | null;
-  user: User | null;
-  timestamp: number;
-}
-
-// Utility functions for caching
-const getCachedAuth = (): CachedAuth | null => {
+// Clean up any auth-related localStorage items
+const clearAuthStorage = () => {
   try {
-    const cached = localStorage.getItem(AUTH_CACHE_KEY);
-    if (!cached) return null;
-    
-    const parsed = JSON.parse(cached) as CachedAuth;
-    const isExpired = Date.now() - parsed.timestamp > CACHE_DURATION;
-    
-    if (isExpired) {
-      localStorage.removeItem(AUTH_CACHE_KEY);
-      return null;
-    }
-    
-    return parsed;
-  } catch {
-    localStorage.removeItem(AUTH_CACHE_KEY);
-    return null;
+    // Remove any auth-related cached data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.includes('supabase') || key.includes('auth')) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to clear auth storage:', error);
   }
 };
 
-const setCachedAuth = (session: Session | null, user: User | null) => {
-  try {
-    const cached: CachedAuth = {
-      session,
-      user,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(cached));
-  } catch {
-    // Ignore cache errors
-  }
-};
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const retryWithBackoff = async <T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> => {
-  let lastError: Error;
+// Validate if session is still valid
+const isSessionValid = (session: Session | null): boolean => {
+  if (!session) return false;
   
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error as Error;
-      if (i === maxRetries - 1) break;
-      
-      const delay = baseDelay * Math.pow(2, i);
-      await sleep(delay);
-    }
-  }
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = session.expires_at || 0;
   
-  throw lastError!;
+  // Check if session expires within the next 60 seconds
+  return expiresAt > (now + 60);
 };
 
 export const useAuth = () => {
@@ -89,98 +48,102 @@ export const useAuth = () => {
     signingOut: false,
   });
   const { toast } = useToast();
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
 
-  // Debounced auth state update
-  const debouncedUpdateAuthState = useCallback((session: Session | null, loading: boolean = false) => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  // Simple, direct auth state update
+  const updateAuthState = (session: Session | null, loading: boolean = false) => {
+    console.log('Auth state update:', { 
+      hasSession: !!session, 
+      userId: session?.user?.id,
+      sessionValid: isSessionValid(session),
+      loading 
+    });
     
-    debounceTimerRef.current = setTimeout(() => {
-      setAuthState(prev => ({
-        ...prev,
-        user: session?.user ?? null,
-        session,
-        loading,
-      }));
-      
-      // Cache the session
-      setCachedAuth(session, session?.user ?? null);
-    }, 100);
-  }, []);
+    setAuthState(prev => ({
+      ...prev,
+      user: session?.user ?? null,
+      session: session,
+      loading,
+    }));
+  };
 
   useEffect(() => {
-    // Check cache first for immediate load
-    const cached = getCachedAuth();
-    if (cached) {
-      setAuthState(prev => ({
-        ...prev,
-        user: cached.user,
-        session: cached.session,
-        loading: false,
-      }));
-    }
-
-    // Set up auth state listener with debouncing
+    console.log('Setting up auth state listener...');
+    
+    // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        debouncedUpdateAuthState(session, false);
+        console.log('Auth state change event:', event, { hasSession: !!session });
+        
+        // Validate session if it exists
+        if (session && !isSessionValid(session)) {
+          console.warn('Invalid session detected, clearing...');
+          session = null;
+        }
+        
+        updateAuthState(session, false);
 
-        // Show welcome toast for successful sign-ins (after debounce)
-        if (event === 'SIGNED_IN') {
-          setTimeout(() => {
-            toast({
-              title: "Welcome back!",
-              description: "You have successfully signed in.",
-            });
-          }, 150);
+        // Show welcome toast for successful sign-ins
+        if (event === 'SIGNED_IN' && session) {
+          toast({
+            title: "Welcome back!",
+            description: "You have successfully signed in.",
+          });
+        }
+        
+        // Clear auth storage on sign out
+        if (event === 'SIGNED_OUT') {
+          clearAuthStorage();
         }
       }
     );
 
-    // Get initial session with retry logic
+    // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await retryWithBackoff(
-          () => supabase.auth.getSession(),
-          2,
-          500
-        );
+        console.log('Getting initial session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Failed to get initial session:', error);
+          updateAuthState(null, false);
+          return;
+        }
         
-        debouncedUpdateAuthState(session, false);
+        // Validate session
+        if (session && !isSessionValid(session)) {
+          console.warn('Initial session is invalid, clearing...');
+          await supabase.auth.signOut();
+          updateAuthState(null, false);
+          return;
+        }
+        
+        updateAuthState(session, false);
       } catch (error) {
-        console.error('Failed to get initial session:', error);
-        setAuthState(prev => ({ ...prev, loading: false }));
+        console.error('Error getting initial session:', error);
+        updateAuthState(null, false);
       }
     };
 
-    // Only fetch from Supabase if no valid cache
-    if (!cached) {
-      getInitialSession();
-    }
+    getInitialSession();
 
     return () => {
+      console.log('Cleaning up auth subscription...');
       subscription.unsubscribe();
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
     };
-  }, [debouncedUpdateAuthState, toast]);
+  }, [toast]);
 
   const signIn = async (email: string, password: string) => {
+    console.log('Starting sign in...');
     setAuthState(prev => ({ ...prev, signingIn: true }));
     
     try {
-      const { error } = await retryWithBackoff(
-        () => supabase.auth.signInWithPassword({ email, password }),
-        2,
-        1000
-      );
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
 
       if (error) {
+        console.error('Sign in error:', error);
         toast({
           title: "Sign in failed",
           description: error.message,
@@ -188,31 +151,31 @@ export const useAuth = () => {
         });
         throw error;
       }
+      
+      console.log('Sign in successful');
     } finally {
       setAuthState(prev => ({ ...prev, signingIn: false }));
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    console.log('Starting sign up...');
     setAuthState(prev => ({ ...prev, signingUp: true }));
     
     try {
-      const { error } = await retryWithBackoff(
-        () => supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: fullName,
-            }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: fullName,
           }
-        }),
-        2,
-        1000
-      );
+        }
+      });
 
       if (error) {
+        console.error('Sign up error:', error);
         toast({
           title: "Sign up failed",
           description: error.message,
@@ -221,6 +184,7 @@ export const useAuth = () => {
         throw error;
       }
 
+      console.log('Sign up successful');
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to complete your registration.",
@@ -231,21 +195,19 @@ export const useAuth = () => {
   };
 
   const signInWithGoogle = async () => {
+    console.log('Starting Google sign in...');
     setAuthState(prev => ({ ...prev, signingIn: true }));
     
     try {
-      const { error } = await retryWithBackoff(
-        () => supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: `${window.location.origin}/`,
-          }
-        }),
-        2,
-        1000
-      );
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        }
+      });
 
       if (error) {
+        console.error('Google sign in error:', error);
         toast({
           title: "Google sign in failed",
           description: error.message,
@@ -253,6 +215,8 @@ export const useAuth = () => {
         });
         throw error;
       }
+      
+      console.log('Google sign in initiated');
     } finally {
       // Note: OAuth redirects, so this may not execute
       setAuthState(prev => ({ ...prev, signingIn: false }));
@@ -260,16 +224,26 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
-    setAuthState(prev => ({ ...prev, signingOut: true }));
+    console.log('Starting sign out...');
+    
+    // Clear local state immediately to prevent UI issues
+    setAuthState(prev => ({ 
+      ...prev, 
+      signingOut: true,
+      user: null,
+      session: null 
+    }));
+    
+    // Clear storage immediately
+    clearAuthStorage();
     
     try {
-      const { error } = await retryWithBackoff(
-        () => supabase.auth.signOut(),
-        2,
-        1000
-      );
+      const { error } = await supabase.auth.signOut();
       
-      if (error) {
+      // Handle "session not found" gracefully - it's not really an error
+      if (error && !error.message.includes('session_not_found') && !error.message.includes('Session not found')) {
+        console.error('Sign out error:', error);
+        // Don't show toast for session not found errors
         toast({
           title: "Sign out failed",
           description: error.message,
@@ -278,15 +252,22 @@ export const useAuth = () => {
         throw error;
       }
 
-      // Clear cache on successful sign out
-      localStorage.removeItem(AUTH_CACHE_KEY);
-      
+      console.log('Sign out successful');
       toast({
         title: "Signed out",
         description: "You have been signed out successfully.",
       });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Even if sign out failed, we've already cleared local state
     } finally {
-      setAuthState(prev => ({ ...prev, signingOut: false }));
+      setAuthState(prev => ({ 
+        ...prev, 
+        signingOut: false,
+        user: null,
+        session: null,
+        loading: false
+      }));
     }
   };
 
