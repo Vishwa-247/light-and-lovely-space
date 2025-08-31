@@ -5,14 +5,18 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ChevronRight, Building2, BookOpen, Search, Star, Filter } from "lucide-react";
 import Container from "@/components/ui/Container";
 import { dsaTopics } from "@/data/dsaProblems";
 import { companies } from "@/data/companyProblems";
 import { useDSAFilters } from "@/hooks/useDSAFilters";
+import { useFavorites } from "@/hooks/useFavorites";
+import FavoritesTable from "@/components/FavoritesTable";
 
 const DSASheet = () => {
   const [activeTab, setActiveTab] = useState("topics");
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   const {
     filters,
@@ -58,7 +62,7 @@ const DSASheet = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3">
               <TabsTrigger value="topics" className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
                 Topics
@@ -66,6 +70,10 @@ const DSASheet = () => {
               <TabsTrigger value="companies" className="flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Companies
+              </TabsTrigger>
+              <TabsTrigger value="favorites" className="flex items-center gap-2">
+                <Star className="w-4 h-4" />
+                Favorites
               </TabsTrigger>
             </TabsList>
 
@@ -86,23 +94,34 @@ const DSASheet = () => {
                       <Link to={`/dsa-sheet/topic/${topic.id}`}>
                         <Card className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 bg-card/50 backdrop-blur-sm">
                           <CardContent className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="text-3xl">{topic.icon}</div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {String(index + 1).padStart(2, '0')}
-                                </Badge>
-                                <Badge 
-                                  className={`text-xs ${
-                                    topic.difficulty === 'Easy' ? 'badge-easy' : 
-                                    topic.difficulty === 'Medium' ? 'badge-medium' : 
-                                    'badge-hard'
-                                  }`}
-                                >
-                                  {topic.difficulty}
-                                </Badge>
-                              </div>
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-3xl">{topic.icon}</div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  toggleFavorite('topics', topic.id);
+                                }}
+                                className="text-yellow-500 hover:text-yellow-600"
+                              >
+                                <Star className={`w-4 h-4 ${isFavorite('topics', topic.id) ? 'fill-current' : ''}`} />
+                              </Button>
+                              <Badge variant="outline" className="text-xs">
+                                {String(index + 1).padStart(2, '0')}
+                              </Badge>
+                              <Badge 
+                                className={`text-xs ${
+                                  topic.difficulty === 'Easy' ? 'badge-easy' : 
+                                  topic.difficulty === 'Medium' ? 'badge-medium' : 
+                                  'badge-hard'
+                                }`}
+                              >
+                                {topic.difficulty}
+                              </Badge>
                             </div>
+                          </div>
                             
                             <h3 className="text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
                               {topic.title}
@@ -154,6 +173,17 @@ const DSASheet = () => {
                               <div className="flex items-center justify-between mb-4">
                                 <div className="text-3xl">{company.icon}</div>
                                 <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      toggleFavorite('companies', company.id);
+                                    }}
+                                    className="text-yellow-500 hover:text-yellow-600"
+                                  >
+                                    <Star className={`w-4 h-4 ${isFavorite('companies', company.id) ? 'fill-current' : ''}`} />
+                                  </Button>
                                   <Badge variant="outline" className="text-xs">
                                     {String(index + 1).padStart(2, '0')}
                                   </Badge>
@@ -171,38 +201,17 @@ const DSASheet = () => {
                               
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between text-sm">
-                                  <span className="text-muted-foreground">
-                                    {solvedFilteredProblems}/{filteredProblems.length} problems
-                                  </span>
+                  <span className="text-foreground font-medium">
+                    {solvedFilteredProblems}/{company.totalProblems} problems
+                  </span>
                                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                 </div>
                                 
-                                <Progress 
-                                  value={filteredProblems.length > 0 ? (solvedFilteredProblems / filteredProblems.length) * 100 : 0} 
-                                  className="h-2"
-                                />
+                <Progress 
+                  value={company.totalProblems > 0 ? (solvedFilteredProblems / company.totalProblems) * 100 : 0} 
+                  className="h-2"
+                />
 
-                                {/* Difficulty breakdown */}
-                                {filters.difficulty.length === 0 && (
-                                  <div className="flex gap-1 text-xs">
-                                    {['Easy', 'Medium', 'Hard'].map(diff => {
-                                      const count = company.problems.filter(p => p.difficulty === diff).length;
-                                      if (count === 0) return null;
-                                      return (
-                                        <Badge 
-                                          key={diff}
-                                          className={`text-xs ${
-                                            diff === 'Easy' ? 'badge-easy' : 
-                                            diff === 'Medium' ? 'badge-medium' : 
-                                            'badge-hard'
-                                          }`}
-                                        >
-                                          {count} {diff}
-                                        </Badge>
-                                      );
-                                    })}
-                                  </div>
-                                )}
                               </div>
                             </CardContent>
                           </Card>
@@ -212,6 +221,10 @@ const DSASheet = () => {
                   })}
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="favorites" className="mt-8">
+              <FavoritesTable />
             </TabsContent>
           </Tabs>
 
@@ -232,7 +245,7 @@ const DSASheet = () => {
                       <div className="text-3xl font-bold text-secondary">
                         {stats.topics.solvedProblems}
                       </div>
-                      <div className="text-sm text-muted-foreground">Solved</div>
+                      <div className="text-sm text-foreground">Solved</div>
                     </div>
                     <div className="w-px h-12 bg-border"></div>
                     <div>
@@ -255,7 +268,7 @@ const DSASheet = () => {
                       <div className="text-3xl font-bold text-secondary">
                         {stats.companies.solvedProblems}
                       </div>
-                      <div className="text-sm text-muted-foreground">Solved</div>
+                      <div className="text-sm text-foreground">Solved</div>
                     </div>
                     <div className="w-px h-12 bg-border"></div>
                     <div>
