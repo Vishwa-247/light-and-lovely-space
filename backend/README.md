@@ -1,27 +1,30 @@
 # StudyMate Backend
 
-A comprehensive backend system for StudyMate application with microservices architecture, AI-powered features, and MongoDB integration.
+**Simplified microservices backend focusing on Profile Builder functionality with Supabase integration.**
 
-## 🏗️ Architecture
+> **📋 See REMOVED.md** for details on removed components and future development plans.
+> **🚀 See EXECUTION.md** for detailed setup and running instructions.
 
-The backend consists of multiple microservices:
+## 🏗️ Current Architecture
 
-- **API Gateway** (Port 8000) - Central routing and authentication
-- **Course Generation Agent** (Port 8001) - AI-powered course creation
-- **Interview Coach Agent** (Port 8002) - Mock interview system
-- **Chat Mentor Agent** (Port 8003) - AI tutoring and assistance
-- **Progress Analyst Agent** (Port 8004) - Learning analytics
-- **Resume Analyzer Agent** (Port 8005) - Resume analysis and feedback
-- **Profile Service** (Port 8006) - User profile management with Groq AI
+**Clean & Focused Microservices:**
+
+- **API Gateway** (Port 8000) - Central routing and authentication with Supabase
+- **Resume Analyzer** (Port 8003) - AI-powered resume analysis using Groq API
+- **Profile Service** (Port 8006) - User profile management with Supabase integration
+
+**Database:** Supabase PostgreSQL with Row Level Security (RLS)
+**Authentication:** Supabase Auth
+**File Storage:** Supabase Storage
+**AI Provider:** Groq API for resume analysis
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Docker and Docker Compose
-- MongoDB (handled via Docker)
-- Redis (handled via Docker)
-- Groq API Key for resume parsing
+- Groq API Key from [console.groq.com](https://console.groq.com/)
+- Supabase Project (already configured)
 
 ### Environment Setup
 
@@ -29,8 +32,12 @@ The backend consists of multiple microservices:
    Create a `.env` file in the `backend` directory:
    ```bash
    GROQ_API_KEY=your_groq_api_key_here
-   GEMINI_API_KEY=your_gemini_api_key_here
+   SUPABASE_URL=https://jwmsgrodliegekbrhvgt.supabase.co
+   SUPABASE_SERVICE_KEY=your_supabase_service_key_here
+   SUPABASE_DB_URL=your_supabase_db_connection_string
    JWT_SECRET=your_jwt_secret_key_here
+   RESUME_ANALYZER_URL=http://resume-analyzer:8003
+   PROFILE_SERVICE_URL=http://profile-service:8006
    ```
 
 2. **Build and Run Services**
@@ -55,66 +62,60 @@ The backend consists of multiple microservices:
 
 ### API Gateway (http://localhost:8000)
 - `GET /health` - Health check
-- `POST /api/auth/login` - User authentication
-- `POST /api/auth/register` - User registration
-- `GET /api/profile/{user_id}` - Get user profile
-- `PUT /api/profile/{user_id}` - Update user profile
-- `POST /api/profile/extract-profile` - Extract profile from resume
+- `GET /docs` - FastAPI interactive documentation
+- `POST /api/resume/analyze` - Analyze resume (proxied to resume-analyzer)
+- `POST /api/profile/extract` - Extract profile data (proxied to profile-service)
+- `GET /api/profile/{user_id}` - Get user profile (proxied to profile-service)
+- `PUT /api/profile/{user_id}` - Update user profile (proxied to profile-service)
+
+### Resume Analyzer (http://localhost:8003)
+- `GET /health` - Health check
+- `GET /docs` - Service documentation
+- `POST /analyze` - Analyze resume file with AI-powered job matching
+- **Features:** PDF/DOCX parsing, ATS scoring, skill extraction, job role matching
 
 ### Profile Service (http://localhost:8006)
 - `GET /health` - Health check
-- `POST /extract-profile` - Extract profile data from resume using Groq AI
-- `GET /profile/{user_id}` - Get user profile
-- `PUT /profile/{user_id}` - Update user profile
+- `GET /docs` - Service documentation
+- `POST /extract-profile` - Extract structured profile data from resume using Groq AI
+- `GET /profile/{user_id}` - Retrieve user profile from Supabase
+- `PUT /profile/{user_id}` - Update user profile in Supabase
+- **Features:** Resume parsing, profile auto-population, Supabase integration
 
-### Course Generation (http://localhost:8001)
-- `POST /generate_course` - Generate AI-powered courses
+## 🧪 Testing the Services
 
-### Interview Coach (http://localhost:8002)
-- `POST /start_interview` - Start mock interview
-- `POST /submit_feedback/{interview_id}` - Submit interview feedback
-
-### Other Services
-- Chat Mentor: http://localhost:8003
-- Progress Analyst: http://localhost:8004
-- Resume Analyzer: http://localhost:8005
-
-## 🧪 Testing the Profile Service
-
-### 1. Health Check
+### 1. Health Checks
 ```bash
+# Test all services are running
 curl http://localhost:8000/health
+curl http://localhost:8003/health
 curl http://localhost:8006/health
 ```
 
-### 2. Test Resume Upload and Parsing
+### 2. Test Resume Analysis
 ```bash
-# Upload a resume for profile extraction
-curl -X POST http://localhost:8000/api/profile/extract-profile \
-  -H "Authorization: Bearer your_jwt_token" \
-  -F "resume=@path/to/your/resume.pdf" \
+# Analyze resume against job role
+curl -X POST http://localhost:8000/api/resume/analyze \
+  -F "file=@path/to/your/resume.pdf" \
+  -F "job_role=Software Engineer" \
   -F "user_id=test_user_123"
 ```
 
-### 3. Get User Profile
+### 3. Test Profile Extraction
 ```bash
-curl -X GET http://localhost:8000/api/profile/test_user_123 \
-  -H "Authorization: Bearer your_jwt_token"
+# Extract profile data from resume
+curl -X POST http://localhost:8000/api/profile/extract \
+  -F "file=@path/to/your/resume.pdf" \
+  -F "user_id=test_user_123"
 ```
 
-### 4. Update Profile
+### 4. Get User Profile
 ```bash
-curl -X PUT http://localhost:8000/api/profile/test_user_123 \
-  -H "Authorization: Bearer your_jwt_token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "personalInfo": {
-      "fullName": "John Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890"
-    }
-  }'
+curl -X GET http://localhost:8000/api/profile/test_user_123
 ```
+
+### 5. Interactive Testing
+Visit http://localhost:8000/docs for Swagger UI testing interface
 
 ## 🐛 Debugging and Logs
 
@@ -142,38 +143,25 @@ docker-compose ps profile-service
 
 ### Access Service Containers
 ```bash
-# Access profile service container
+# Access service containers
+docker-compose exec api-gateway bash
+docker-compose exec resume-analyzer bash
 docker-compose exec profile-service bash
-
-# Access MongoDB
-docker-compose exec mongodb mongosh -u root -p password
 ```
 
-## 📊 MongoDB Collections
+## 📊 Supabase Database
 
-The system uses the following MongoDB collections:
+**Database Type:** PostgreSQL with Row Level Security (RLS)
 
-- `users` - User authentication data
-- `profiles` - User profile information
-- `courses` - Generated courses
-- `chapters` - Course chapters
-- `mock_interviews` - Interview sessions
-- `progress_tracking` - Learning progress
+### Key Tables:
+- `profiles` - User profile information extracted from resumes
+- `resume_extractions` - Resume analysis results and AI insights
+- Authentication managed by Supabase Auth
 
-### Access MongoDB
-```bash
-# Connect to MongoDB
-docker-compose exec mongodb mongosh -u root -p password
-
-# Switch to studymate database
-use studymate
-
-# View collections
-show collections
-
-# Query profiles
-db.profiles.find().pretty()
-```
+### Access Database:
+- **Supabase Dashboard:** https://supabase.com/dashboard/project/jwmsgrodliegekbrhvgt
+- **SQL Editor:** Available in Supabase Dashboard
+- **Direct Connection:** Use connection string from project settings
 
 ## 🔍 Common Issues and Solutions
 
@@ -182,10 +170,10 @@ db.profiles.find().pretty()
 - Verify environment variables
 - Check Docker logs: `docker-compose logs service-name`
 
-### 2. MongoDB Connection Issues
-- Ensure MongoDB container is running
-- Check connection string in docker-compose.yml
-- Verify credentials
+### 2. Supabase Connection Issues
+- Verify SUPABASE_URL and SUPABASE_SERVICE_KEY in environment
+- Check service key permissions in Supabase Dashboard
+- Test connection from Supabase SQL Editor
 
 ### 3. Groq API Errors
 - Verify GROQ_API_KEY in environment
@@ -206,35 +194,41 @@ db.profiles.find().pretty()
 4. Add routes to API Gateway
 
 ### Environment Variables
-- `GROQ_API_KEY` - Required for resume parsing
-- `GEMINI_API_KEY` - Required for other AI features
-- `JWT_SECRET` - Required for authentication
-- `MONGODB_URL` - MongoDB connection string
-- `REDIS_URL` - Redis connection string
+- `GROQ_API_KEY` - Required for AI-powered resume parsing and analysis
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_SERVICE_KEY` - Supabase service role key for backend access
+- `SUPABASE_DB_URL` - PostgreSQL connection string for direct DB access
+- `JWT_SECRET` - Required for internal service authentication
 
 ### Service Communication
-Services communicate via HTTP APIs through the Docker network. The API Gateway routes external requests to appropriate services.
+- **Docker Network:** Services communicate via internal Docker network
+- **API Gateway:** Routes external requests to appropriate microservices  
+- **Database:** All services connect to shared Supabase PostgreSQL instance
+- **Authentication:** Supabase JWT tokens for user authentication
 
 ## 📝 API Documentation
 
 For detailed API documentation, start the services and visit:
-- API Gateway Docs: http://localhost:8000/docs
-- Profile Service Docs: http://localhost:8006/docs
+- **API Gateway:** http://localhost:8000/docs
+- **Resume Analyzer:** http://localhost:8003/docs  
+- **Profile Service:** http://localhost:8006/docs
 
 ## 🔒 Security
 
-- JWT-based authentication
-- Environment variable for sensitive data
-- CORS configuration for frontend integration
-- Input validation and sanitization
+- **Supabase Authentication:** Built-in JWT token validation
+- **Row Level Security (RLS):** Database-level access control
+- **Environment Variables:** All sensitive data in environment files
+- **CORS Configuration:** Proper frontend integration security
+- **Input Validation:** Comprehensive request validation and sanitization
 
 ## 📈 Monitoring
 
 Monitor service health using:
-- Health check endpoints (`/health`)
-- Docker container status
-- Service logs
-- MongoDB connection status
+- **Health Endpoints:** `/health` on all services  
+- **Docker Status:** `docker-compose ps`
+- **Service Logs:** `docker-compose logs -f [service]`
+- **Supabase Dashboard:** Real-time database and auth monitoring
+- **API Documentation:** Interactive testing via `/docs` endpoints
 
 ## 🤝 Contributing
 
