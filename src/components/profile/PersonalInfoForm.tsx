@@ -39,6 +39,7 @@ export default function PersonalInfoForm() {
   });
 
   const onSubmit = async (data: PersonalInfoFormData) => {
+    console.log('PersonalInfoForm onSubmit called with:', data);
     try {
       await updateProfile({
         personalInfo: data as PersonalInfo,
@@ -48,9 +49,10 @@ export default function PersonalInfoForm() {
         description: "Personal information updated successfully",
       });
     } catch (error) {
+      console.error('PersonalInfoForm submission error:', error);
       toast({
         title: "Error",
-        description: "Failed to update personal information",
+        description: `Failed to update personal information: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }

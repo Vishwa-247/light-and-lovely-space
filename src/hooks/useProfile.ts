@@ -160,8 +160,12 @@ export const useProfile = () => {
   };
 
   const updateProfile = async (updates: Partial<ProfileFormData>) => {
-    if (!profile || !user) return;
+    if (!profile || !user) {
+      console.error('updateProfile called without profile or user:', { profile: !!profile, user: !!user });
+      return;
+    }
 
+    console.log('Updating profile with:', updates);
     setIsLoading(true);
     try {
       const updatedProfile: UserProfile = {
@@ -170,8 +174,19 @@ export const useProfile = () => {
         updatedAt: new Date().toISOString(),
       };
 
+      console.log('Attempting upsert with data:', {
+        user_id: user.id,
+        full_name: updatedProfile.personalInfo.fullName,
+        email: updatedProfile.personalInfo.email,
+        phone: updatedProfile.personalInfo.phone,
+        location: updatedProfile.personalInfo.location,
+        linkedin_url: updatedProfile.personalInfo.linkedin,
+        github_url: updatedProfile.personalInfo.github,
+        portfolio_url: updatedProfile.personalInfo.portfolio,
+      });
+
       // Update in Supabase database
-      const { error: profileError } = await supabase
+      const { data, error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: user.id,
@@ -183,9 +198,13 @@ export const useProfile = () => {
           github_url: updatedProfile.personalInfo.github,
           portfolio_url: updatedProfile.personalInfo.portfolio,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .select();
+
+      console.log('Upsert result:', { data, error: profileError });
 
       if (profileError) {
+        console.error('Profile update error:', profileError);
         throw profileError;
       }
 
@@ -200,7 +219,7 @@ export const useProfile = () => {
       console.error("Failed to update profile:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
       throw error;
