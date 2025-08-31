@@ -1,6 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
 import os
 from typing import Optional
 import PyPDF2
@@ -8,17 +7,19 @@ import docx
 import io
 import json
 from datetime import datetime
-from bson import ObjectId
+import logging
 import sys
 sys.path.append('/app/shared')
-from database.connection import get_profiles_collection, get_sync_database
+from database.supabase_connection import (
+    init_database, close_database, save_resume_analysis, 
+    health_check as db_health_check
+)
 
-# Configure Gemini API
-GEMINI_API_KEY = "AIzaSyBr964zVyQutiRjAUId0l767TyfaAiPEuE"
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Resume Analyzer Service")
+app = FastAPI(title="Resume Analyzer Service - Supabase Edition")
 
 # Enable CORS
 app.add_middleware(
@@ -29,6 +30,47 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# AI Configuration - Using both Groq and Gemini
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+
+# Initialize AI clients
+groq_client = None
+gemini_model = None
+
+if GROQ_API_KEY:
+    try:
+        from groq import Groq
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        logger.info("✅ Groq client initialized successfully")
+    except ImportError:
+        logger.warning("⚠️ Groq library not installed, falling back to Gemini")
+
+if GEMINI_API_KEY:
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-pro')
+        logger.info("✅ Gemini client initialized successfully")
+    except ImportError:
+        logger.warning("⚠️ Gemini library not installed")
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database connection on startup"""
+    try:
+        await init_database()
+        logger.info("🚀 Resume Analyzer Service started successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize database: {e}")
+        raise e
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection on shutdown"""
+    await close_database()
+    logger.info("🛑 Resume Analyzer Service shutdown complete")
+
 def extract_text_from_pdf(file_content: bytes) -> str:
     """Extract text from PDF file"""
     try:
@@ -38,7 +80,7 @@ def extract_text_from_pdf(file_content: bytes) -> str:
             text += page.extract_text() + "\n"
         return text
     except Exception as e:
-        print(f"Error extracting PDF text: {e}")
+        logger.error(f"Error extracting PDF text: {e}")
         return ""
 
 def extract_text_from_docx(file_content: bytes) -> str:
@@ -50,70 +92,14 @@ def extract_text_from_docx(file_content: bytes) -> str:
             text += paragraph.text + "\n"
         return text
     except Exception as e:
-        print(f"Error extracting DOCX text: {e}")
+        logger.error(f"Error extracting DOCX text: {e}")
         return ""
 
-def extract_resume_data(resume_text: str, job_role: str, job_description: str = "") -> dict:
-    """Use Gemini to extract structured data from resume"""
-    try:
-        prompt = f"""
-        Analyze the following resume and extract structured information for the job role: {job_role}
-        
-        Job Description (if provided): {job_description}
-        
-        Resume Text:
-        {resume_text}
-        
-        Please provide a JSON response with the following structure:
-        {{
-            "personal_info": {{
-                "name": "Full name",
-                "email": "Email address",
-                "phone": "Phone number",
-                "location": "Location/Address"
-            }},
-            "summary": "Professional summary or objective",
-            "skills": ["List of technical and soft skills"],
-            "experience": [
-                {{
-                    "title": "Job title",
-                    "company": "Company name",
-                    "duration": "Employment period",
-                    "description": "Job description and achievements"
-                }}
-            ],
-            "education": [
-                {{
-                    "degree": "Degree name",
-                    "institution": "University/School name",
-                    "year": "Graduation year",
-                    "gpa": "GPA if mentioned"
-                }}
-            ],
-            "projects": [
-                {{
-                    "name": "Project name",
-                    "description": "Project description",
-                    "technologies": ["Technologies used"]
-                }}
-            ],
-            "certifications": ["List of certifications"],
-            "languages": ["Programming languages or spoken languages"]
-        }}
-        
-        Only return valid JSON, no additional text.
-        """
-        
-        response = model.generate_content(prompt)
-        # Parse the JSON response
-        extracted_data = json.loads(response.text.strip())
-        return extracted_data
-    except Exception as e:
-        print(f"Error extracting resume data: {e}")
-        return {}
-
-def analyze_resume_for_job(resume_text: str, job_role: str, job_description: str = "") -> dict:
-    """Analyze resume against specific job role using Gemini"""
+async def analyze_with_groq(resume_text: str, job_role: str, job_description: str = "") -> dict:
+    """Analyze resume using Groq AI"""
+    if not groq_client:
+        raise Exception("Groq client not available")
+    
     try:
         prompt = f"""
         Analyze this resume for the job role: {job_role}
@@ -148,25 +134,71 @@ def analyze_resume_for_job(resume_text: str, job_role: str, job_description: str
         Only return valid JSON, no additional text.
         """
         
-        response = model.generate_content(prompt)
-        analysis = json.loads(response.text.strip())
+        response = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert resume analyzer. Always respond with valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.1-70b-versatile",
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        analysis = json.loads(response.choices[0].message.content.strip())
+        analysis["ai_provider"] = "groq"
         return analysis
+        
     except Exception as e:
-        print(f"Error analyzing resume: {e}")
-        return {
-            "overall_score": 0,
-            "job_match_score": 0,
-            "ats_score": 0,
-            "strengths": [],
-            "weaknesses": ["Error analyzing resume"],
-            "skill_gaps": [],
-            "recommendations": ["Please try uploading the resume again"],
-            "keywords_found": [],
-            "missing_keywords": [],
-            "sections_analysis": {},
-            "improvement_priority": [],
-            "role_specific_advice": []
-        }
+        logger.error(f"Groq analysis failed: {e}")
+        raise e
+
+async def analyze_with_gemini(resume_text: str, job_role: str, job_description: str = "") -> dict:
+    """Analyze resume using Gemini AI (fallback)"""
+    if not gemini_model:
+        raise Exception("Gemini model not available")
+    
+    try:
+        prompt = f"""
+        Analyze this resume for the job role: {job_role}
+        
+        Job Description: {job_description}
+        
+        Resume Content:
+        {resume_text}
+        
+        Provide a comprehensive analysis in JSON format:
+        {{
+            "overall_score": "Score out of 100",
+            "job_match_score": "How well resume matches the job role (0-100)",
+            "ats_score": "ATS compatibility score (0-100)",
+            "strengths": ["List of resume strengths relevant to the job"],
+            "weaknesses": ["Areas that need improvement"],
+            "skill_gaps": ["Missing skills for the job role"],
+            "recommendations": ["Specific recommendations to improve the resume"],
+            "keywords_found": ["Important keywords found in resume"],
+            "missing_keywords": ["Important keywords missing from resume"],
+            "sections_analysis": {{
+                "summary": "Analysis of professional summary",
+                "experience": "Analysis of work experience",
+                "skills": "Analysis of skills section",
+                "education": "Analysis of education",
+                "overall_structure": "Analysis of resume structure and formatting"
+            }},
+            "improvement_priority": ["Top 3 areas to focus on for improvement"],
+            "role_specific_advice": ["Advice specific to the {job_role} role"]
+        }}
+        
+        Only return valid JSON, no additional text.
+        """
+        
+        response = gemini_model.generate_content(prompt)
+        analysis = json.loads(response.text.strip())
+        analysis["ai_provider"] = "gemini"
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"Gemini analysis failed: {e}")
+        raise e
 
 @app.post("/analyze-resume")
 async def analyze_resume(
@@ -175,8 +207,10 @@ async def analyze_resume(
     job_description: str = Form(""),
     user_id: Optional[str] = Form(None)
 ):
-    """Analyze uploaded resume for specific job role"""
+    """Analyze uploaded resume for specific job role using Groq/Gemini AI"""
     try:
+        logger.info(f"🔍 Starting resume analysis for job role: {job_role}")
+        
         # Read file content
         file_content = await resume.read()
         
@@ -186,173 +220,134 @@ async def analyze_resume(
         elif resume.content_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
             resume_text = extract_text_from_docx(file_content)
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file format")
+            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF or DOCX.")
         
         if not resume_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract text from resume")
+            raise HTTPException(status_code=400, detail="Could not extract text from resume. Please check file format.")
         
-        # Extract structured data
-        extracted_data = extract_resume_data(resume_text, job_role, job_description)
+        logger.info(f"📄 Extracted {len(resume_text)} characters from resume")
         
-        # Analyze resume
-        analysis = analyze_resume_for_job(resume_text, job_role, job_description)
+        # Try Groq first, fallback to Gemini
+        analysis = None
+        try:
+            if groq_client:
+                logger.info("🧠 Analyzing with Groq AI...")
+                analysis = await analyze_with_groq(resume_text, job_role, job_description)
+            else:
+                raise Exception("Groq client not available")
+        except Exception as groq_error:
+            logger.warning(f"⚠️ Groq analysis failed: {groq_error}")
+            try:
+                if gemini_model:
+                    logger.info("🔄 Falling back to Gemini AI...")
+                    analysis = await analyze_with_gemini(resume_text, job_role, job_description)
+                else:
+                    raise Exception("Gemini model not available")
+            except Exception as gemini_error:
+                logger.error(f"❌ Both AI providers failed. Groq: {groq_error}, Gemini: {gemini_error}")
+                # Return basic fallback analysis
+                analysis = {
+                    "overall_score": 50,
+                    "job_match_score": 50,
+                    "ats_score": 50,
+                    "strengths": ["Resume uploaded successfully"],
+                    "weaknesses": ["AI analysis temporarily unavailable"],
+                    "skill_gaps": ["Unable to analyze at this time"],
+                    "recommendations": ["Please try again later"],
+                    "keywords_found": [],
+                    "missing_keywords": [],
+                    "sections_analysis": {
+                        "summary": "Analysis unavailable",
+                        "experience": "Analysis unavailable",
+                        "skills": "Analysis unavailable",
+                        "education": "Analysis unavailable",
+                        "overall_structure": "Analysis unavailable"
+                    },
+                    "improvement_priority": ["Try uploading again"],
+                    "role_specific_advice": ["AI service temporarily unavailable"],
+                    "ai_provider": "fallback"
+                }
         
         # Prepare response
         result = {
+            "success": True,
             "filename": resume.filename,
             "file_size": len(file_content),
             "upload_date": datetime.now().isoformat(),
             "job_role": job_role,
             "job_description": job_description,
             "extracted_text": resume_text[:1000],  # First 1000 chars for preview
-            "extracted_data": extracted_data,
             "analysis": analysis,
             "processing_status": "completed"
         }
         
-        # Save to database if user_id provided
+        # Save to Supabase if user_id provided
         if user_id:
             try:
-                # Get MongoDB database
-                db = get_sync_database()
-                profiles_collection = db["profiles"]
-                
-                # Save resume analysis to database
-                resume_record = {
-                    "user_id": user_id,
+                logger.info(f"💾 Saving analysis to Supabase for user: {user_id}")
+                resume_data = {
                     "filename": resume.filename,
                     "file_size": len(file_content),
-                    "upload_date": datetime.now(),
-                    "job_role": job_role,
-                    "job_description": job_description,
                     "extracted_text": resume_text,
-                    "extracted_data": extracted_data,
-                    "analysis": analysis,
-                    "processing_status": "completed"
+                    "ai_analysis": analysis,
+                    "skill_gaps": analysis.get("skill_gaps", []),
+                    "recommendations": analysis.get("recommendations", [])
                 }
                 
-                profiles_collection.insert_one(resume_record)
+                resume_id = await save_resume_analysis(user_id, resume_data)
+                result["resume_id"] = resume_id
+                logger.info(f"✅ Analysis saved with ID: {resume_id}")
                 
             except Exception as db_error:
-                print(f"Database error: {db_error}")
+                logger.error(f"💥 Database save failed: {db_error}")
                 # Don't fail the request if DB save fails
+                result["db_warning"] = "Analysis completed but failed to save to database"
         
+        logger.info(f"✅ Resume analysis completed successfully for {job_role}")
         return result
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in analyze_resume: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-@app.post("/extract-profile-data")
-async def extract_profile_data(
-    resume: UploadFile = File(...),
-    user_id: str = Form(...)
-):
-    """Extract profile data from resume to populate profile builder"""
-    try:
-        # Read file content
-        file_content = await resume.read()
-        
-        # Extract text based on file type
-        if resume.content_type == "application/pdf":
-            resume_text = extract_text_from_pdf(file_content)
-        elif resume.content_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
-            resume_text = extract_text_from_docx(file_content)
-        else:
-            raise HTTPException(status_code=400, detail="Unsupported file format")
-        
-        if not resume_text.strip():
-            raise HTTPException(status_code=400, detail="Could not extract text from resume")
-        
-        # Extract structured data for profile
-        extracted_data = extract_resume_data(resume_text, "General", "")
-        
-        # Transform data to match profile structure
-        profile_data = {
-            "personalInfo": {
-                "fullName": extracted_data.get("personal_info", {}).get("name", ""),
-                "email": extracted_data.get("personal_info", {}).get("email", ""),
-                "phone": extracted_data.get("personal_info", {}).get("phone", ""),
-                "location": extracted_data.get("personal_info", {}).get("location", ""),
-                "linkedin": "",
-                "github": "",
-                "portfolio": ""
-            },
-            "experience": [
-                {
-                    "title": exp.get("title", ""),
-                    "company": exp.get("company", ""),
-                    "location": "",
-                    "startDate": "",
-                    "endDate": "",
-                    "current": False,
-                    "description": exp.get("description", "")
-                }
-                for exp in extracted_data.get("experience", [])
-            ],
-            "education": [
-                {
-                    "degree": edu.get("degree", ""),
-                    "institution": edu.get("institution", ""),
-                    "location": "",
-                    "startDate": "",
-                    "endDate": edu.get("year", ""),
-                    "gpa": edu.get("gpa", ""),
-                    "description": ""
-                }
-                for edu in extracted_data.get("education", [])
-            ],
-            "projects": [
-                {
-                    "name": proj.get("name", ""),
-                    "description": proj.get("description", ""),
-                    "technologies": proj.get("technologies", []),
-                    "url": "",
-                    "github": "",
-                    "startDate": "",
-                    "endDate": ""
-                }
-                for proj in extracted_data.get("projects", [])
-            ],
-            "skills": extracted_data.get("skills", []),
-            "certifications": [
-                {
-                    "name": cert,
-                    "issuer": "",
-                    "date": "",
-                    "url": "",
-                    "description": ""
-                }
-                for cert in extracted_data.get("certifications", [])
-            ],
-            "resumeData": {
-                "filename": resume.filename,
-                "uploadDate": datetime.now().isoformat(),
-                "extractedText": resume_text[:500],  # Preview text
-                "aiAnalysis": "Resume data extracted successfully for profile building",
-                "skillGaps": [],
-                "recommendations": [
-                    "Review and verify all extracted information",
-                    "Add missing details like dates, locations, and URLs",
-                    "Complete your profile with additional projects and achievements"
-                ]
-            }
-        }
-        
-        return profile_data
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error in extract_profile_data: {e}")
+        logger.error(f"💥 Critical error in analyze_resume: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "resume-analyzer"}
+    """Health check endpoint with database status"""
+    try:
+        db_status = await db_health_check()
+        
+        ai_status = {
+            "groq_available": groq_client is not None,
+            "gemini_available": gemini_model is not None
+        }
+        
+        return {
+            "status": "healthy",
+            "service": "resume-analyzer-supabase",
+            "database": db_status,
+            "ai_providers": ai_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "service": "resume-analyzer-supabase",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "service": "StudyMate Resume Analyzer",
+        "version": "2.0.0",
+        "database": "supabase_postgresql",
+        "ai_providers": ["groq", "gemini"],
+        "status": "running"
+    }
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,11 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
 import os
+import logging
 from typing import Optional
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 
-app = FastAPI(title="StudyMate API Gateway", version="1.0.0")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="StudyMate API Gateway - Supabase Edition", version="2.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -21,15 +26,12 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
-# Agent service URLs
+# Agent service URLs - Simplified for Supabase architecture
 AGENT_SERVICES = {
+    "resume-analyzer": os.getenv("RESUME_ANALYZER_URL", "http://resume-analyzer:8003"),
+    "profile-service": os.getenv("PROFILE_SERVICE_URL", "http://profile-service:8006"),
     "course-generation": os.getenv("COURSE_GENERATION_URL", "http://course-generation:8001"),
     "interview-coach": os.getenv("INTERVIEW_COACH_URL", "http://interview-coach:8002"),
-    "chat-mentor": os.getenv("CHAT_MENTOR_URL", "http://chat-mentor:8003"),
-    "progress-analyst": os.getenv("PROGRESS_ANALYST_URL", "http://progress-analyst:8004"),
-    "resume-analyzer": os.getenv("RESUME_ANALYZER_URL", "http://resume-analyzer:8005"),
-    "profile-service": os.getenv("PROFILE_SERVICE_URL", "http://profile-service:8006"),
-    "resume-analyzer-groq": os.getenv("RESUME_ANALYZER_GROQ_URL", "http://resume-analyzer-groq:8003"),
 }
 
 # JWT Configuration
@@ -80,11 +82,39 @@ async def forward_to_agent(agent_name: str, path: str, method: str = "GET", data
 
 @app.get("/")
 async def root():
-    return {"message": "StudyMate API Gateway", "version": "1.0.0"}
+    return {
+        "message": "StudyMate API Gateway - Supabase Edition", 
+        "version": "2.0.0",
+        "database": "supabase_postgresql",
+        "services": list(AGENT_SERVICES.keys())
+    }
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow()}
+    """Health check with service status"""
+    service_health = {}
+    
+    # Check each service health
+    for service_name, service_url in AGENT_SERVICES.items():
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"{service_url}/health")
+                service_health[service_name] = {
+                    "status": "healthy" if response.status_code == 200 else "unhealthy",
+                    "response_code": response.status_code
+                }
+        except Exception as e:
+            service_health[service_name] = {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+    
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow(),
+        "services": service_health,
+        "database": "supabase_postgresql"
+    }
 
 # Authentication endpoints
 @app.post("/auth/signin")
