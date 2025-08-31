@@ -160,13 +160,33 @@ export const useProfile = () => {
   };
 
   const updateProfile = async (updates: Partial<ProfileFormData>) => {
-    if (!profile || !user) {
-      console.error('updateProfile called without profile or user:', { profile: !!profile, user: !!user });
-      return;
+    console.log('updateProfile called with user:', { userId: user?.id, hasProfile: !!profile });
+    
+    if (!user) {
+      const error = new Error('User not authenticated');
+      console.error('updateProfile failed: no user');
+      throw error;
+    }
+
+    if (!profile) {
+      const error = new Error('Profile not loaded');
+      console.error('updateProfile failed: no profile');
+      throw error;
+    }
+
+    // Verify current session is valid
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Current session check:', { hasSession: !!session, sessionError });
+    
+    if (sessionError || !session) {
+      const error = new Error('Session expired or invalid');
+      console.error('updateProfile failed: invalid session', sessionError);
+      throw error;
     }
 
     console.log('Updating profile with:', updates);
     setIsLoading(true);
+    
     try {
       const updatedProfile: UserProfile = {
         ...profile,
@@ -174,7 +194,7 @@ export const useProfile = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      console.log('Attempting upsert with data:', {
+      const upsertData = {
         user_id: user.id,
         full_name: updatedProfile.personalInfo.fullName,
         email: updatedProfile.personalInfo.email,
@@ -183,29 +203,36 @@ export const useProfile = () => {
         linkedin_url: updatedProfile.personalInfo.linkedin,
         github_url: updatedProfile.personalInfo.github,
         portfolio_url: updatedProfile.personalInfo.portfolio,
-      });
+        updated_at: new Date().toISOString(),
+      };
 
-      // Update in Supabase database
-      const { data, error: profileError } = await supabase
+      console.log('Attempting upsert with data:', upsertData);
+
+      // Update in Supabase database with explicit user authentication
+      const { data, error: profileError, count } = await supabase
         .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          full_name: updatedProfile.personalInfo.fullName,
-          email: updatedProfile.personalInfo.email,
-          phone: updatedProfile.personalInfo.phone,
-          location: updatedProfile.personalInfo.location,
-          linkedin_url: updatedProfile.personalInfo.linkedin,
-          github_url: updatedProfile.personalInfo.github,
-          portfolio_url: updatedProfile.personalInfo.portfolio,
-          updated_at: new Date().toISOString(),
+        .upsert(upsertData, { 
+          onConflict: 'user_id',
+          ignoreDuplicates: false 
         })
-        .select();
+        .select()
+        .single();
 
-      console.log('Upsert result:', { data, error: profileError });
+      console.log('Upsert result:', { data, error: profileError, count, affectedRows: count });
 
       if (profileError) {
-        console.error('Profile update error:', profileError);
-        throw profileError;
+        console.error('Profile update error details:', {
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          code: profileError.code
+        });
+        throw new Error(`Database error: ${profileError.message}`);
+      }
+
+      if (!data) {
+        console.error('No data returned from upsert - possible RLS policy issue');
+        throw new Error('Profile update failed - no data returned. This may be an authentication issue.');
       }
 
       setProfile(updatedProfile);
