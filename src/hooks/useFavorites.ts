@@ -83,10 +83,14 @@ export const useFavorites = () => {
 
       if (error) throw error;
 
-      setFavorites(prev => ({
-        ...prev,
-        [type + 's' as keyof FavoritesData]: [...prev[type + 's' as keyof FavoritesData], id]
-      }));
+      setFavorites(prev => {
+        const key = `${type}s` as keyof FavoritesData;
+        const currentArray = prev[key] || [];
+        return {
+          ...prev,
+          [key]: [...currentArray, id]
+        };
+      });
 
       toast.success('Added to favorites');
     } catch (error: any) {
@@ -116,10 +120,14 @@ export const useFavorites = () => {
 
       if (error) throw error;
 
-      setFavorites(prev => ({
-        ...prev,
-        [type + 's' as keyof FavoritesData]: prev[type + 's' as keyof FavoritesData].filter(item => item !== id)
-      }));
+      setFavorites(prev => {
+        const key = `${type}s` as keyof FavoritesData;
+        const currentArray = prev[key] || [];
+        return {
+          ...prev,
+          [key]: currentArray.filter(item => item !== id)
+        };
+      });
 
       toast.success('Removed from favorites');
     } catch (error) {
