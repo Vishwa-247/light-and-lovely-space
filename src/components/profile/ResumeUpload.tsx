@@ -1,5 +1,5 @@
-import EnhancedResumeUpload from "./EnhancedResumeUpload";
+import SimpleResumeUpload from "./SimpleResumeUpload";
 
 export default function ResumeUpload() {
-  return <EnhancedResumeUpload />;
+  return <SimpleResumeUpload />;
 }

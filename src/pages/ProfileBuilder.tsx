@@ -29,7 +29,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { UserProfile } from "@/types/profile";
 
 const sections = [
-  { id: 'resume', name: 'Resume Upload', icon: FileText, component: ResumeUpload, description: 'Upload your resume for automatic data extraction' },
+  { id: 'resume', name: 'Resume Upload', icon: FileText, component: ResumeUpload, description: 'Upload your resume to auto-fill profile data' },
   { id: 'personal', name: 'Personal Info', icon: User, component: PersonalInfoForm, description: 'Basic contact information and professional links' },
   { id: 'education', name: 'Education', icon: GraduationCap, component: EducationForm, description: 'Your academic background and qualifications' },
   { id: 'experience', name: 'Experience', icon: Briefcase, component: ExperienceForm, description: 'Professional work experience and internships' },
