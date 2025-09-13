@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import os
 from typing import Optional, Dict, Any
 import PyPDF2
@@ -25,7 +26,22 @@ from shared.database.supabase_connection import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Profile Service - Supabase Edition")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown"""
+    try:
+        await init_database()
+        logger.info("🚀 Profile Service started successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Database not available, running in offline mode: {e}")
+    
+    yield
+    
+    await close_database()
+    logger.info("🛑 Profile Service shutdown complete")
+
+# Create FastAPI app with lifespan
+app = FastAPI(title="Profile Service - Supabase Edition", lifespan=lifespan)
 
 # Enable CORS
 app.add_middleware(
@@ -49,21 +65,24 @@ if GROQ_API_KEY:
     except ImportError:
         logger.warning("⚠️ Groq library not installed")
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database connection on startup"""
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown"""
     try:
         await init_database()
         logger.info("🚀 Profile Service started successfully")
     except Exception as e:
-        logger.error(f"❌ Failed to initialize database: {e}")
-        raise e
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database connection on shutdown"""
+        logger.warning(f"⚠️ Database not available, running in offline mode: {e}")
+    
+    yield
+    
     await close_database()
     logger.info("🛑 Profile Service shutdown complete")
+
+# Update FastAPI app to use lifespan
+app = FastAPI(title="Profile Service - Supabase Edition", lifespan=lifespan)
 
 def extract_text_from_pdf(file_content: bytes) -> str:
     """Extract text from PDF file"""
@@ -417,10 +436,49 @@ async def get_profile(user_id: str):
     try:
         logger.info(f"📖 Fetching profile for user: {user_id}")
         
+        # Check if database is available
+        if not supabase_manager or not supabase_manager.supabase:
+            logger.warning("Database not connected, returning empty profile")
+            return {
+                "user_id": user_id,
+                "full_name": "",
+                "email": "",
+                "phone": "",
+                "location": "",
+                "professional_summary": "",
+                "linkedin_url": "",
+                "github_url": "",
+                "portfolio_url": "",
+                "completion_percentage": 0,
+                "education": [],
+                "experience": [],
+                "projects": [],
+                "skills": [],
+                "certifications": [],
+                "_offline_mode": True
+            }
+        
         # Get main profile
         profile = await get_user_profile(user_id)
         if not profile:
-            raise HTTPException(status_code=404, detail="Profile not found")
+            # Create empty profile structure
+            return {
+                "user_id": user_id,
+                "full_name": "",
+                "email": "",
+                "phone": "",
+                "location": "",
+                "professional_summary": "",
+                "linkedin_url": "",
+                "github_url": "",
+                "portfolio_url": "",
+                "completion_percentage": 0,
+                "education": [],
+                "experience": [],
+                "projects": [],
+                "skills": [],
+                "certifications": []
+            }
         
         # Get related data
         education = await get_user_education(user_id)
@@ -440,13 +498,29 @@ async def get_profile(user_id: str):
         }
         
         logger.info(f"✅ Profile fetched successfully for user: {user_id}")
-        return {"profile": complete_profile}
+        return complete_profile
         
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"💥 Error fetching profile: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        # Return empty profile instead of 500 error
+        return {
+            "user_id": user_id,
+            "full_name": "",
+            "email": "",
+            "phone": "",
+            "location": "",
+            "professional_summary": "",
+            "linkedin_url": "",
+            "github_url": "",
+            "portfolio_url": "",
+            "completion_percentage": 0,
+            "education": [],
+            "experience": [],
+            "projects": [],
+            "skills": [],
+            "certifications": [],
+            "_error": str(e)
+        }
 
 @app.put("/profile/{user_id}")
 async def update_profile(user_id: str, profile_data: Dict[str, Any]):
