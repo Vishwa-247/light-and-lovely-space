@@ -19,28 +19,9 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Static mock courses data
-  const mockCourses = [
-    { id: "mock1", title: "React Fundamentals", purpose: "job_interview", difficulty: "intermediate", created_at: new Date().toISOString(), user_id: "mock-user" },
-    { id: "mock2", title: "Data Structures", purpose: "coding_preparation", difficulty: "advanced", created_at: new Date().toISOString(), user_id: "mock-user" },
-    { id: "mock3", title: "System Design", purpose: "practice", difficulty: "expert", created_at: new Date().toISOString(), user_id: "mock-user" },
-    { id: "mock4", title: "TypeScript Mastery", purpose: "job_interview", difficulty: "intermediate", created_at: new Date().toISOString(), user_id: "mock-user" },
-    { id: "mock5", title: "Machine Learning Basics", purpose: "exam", difficulty: "beginner", created_at: new Date().toISOString(), user_id: "mock-user" },
-    { id: "mock6", title: "Cloud Architecture", purpose: "practice", difficulty: "advanced", created_at: new Date().toISOString(), user_id: "mock-user" },
-  ];
-
-  // Static mock interviews data
-  const mockInterviews = [
-    { id: "mock1", job_role: "Frontend Developer", tech_stack: "React, TypeScript", experience: "3-5", created_at: new Date().toISOString(), user_id: "mock-user", completed: true },
-    { id: "mock2", job_role: "Full Stack Engineer", tech_stack: "Node.js, Express, MongoDB", experience: "1-3", created_at: new Date().toISOString(), user_id: "mock-user", completed: false },
-    { id: "mock3", job_role: "Data Scientist", tech_stack: "Python, TensorFlow, PyTorch", experience: "5+", created_at: new Date().toISOString(), user_id: "mock-user", completed: true },
-    { id: "mock4", job_role: "DevOps Engineer", tech_stack: "Docker, Kubernetes, AWS", experience: "3-5", created_at: new Date().toISOString(), user_id: "mock-user", completed: true },
-    { id: "mock5", job_role: "Mobile Developer", tech_stack: "Flutter, Dart, Firebase", experience: "1-3", created_at: new Date().toISOString(), user_id: "mock-user", completed: true },
-    { id: "mock6", job_role: "Backend Engineer", tech_stack: "Java, Spring Boot, MySQL", experience: "5+", created_at: new Date().toISOString(), user_id: "mock-user", completed: false },
-  ];
-
-  const displayCourses = mockCourses;
-  const displayInterviews = mockInterviews;
+  // Real courses and interviews data - empty by default, will be populated from backend
+  const displayCourses: any[] = [];
+  const displayInterviews: any[] = [];
 
   const recentCourses = displayCourses.slice(0, 3);
   const recentInterviews = displayInterviews.slice(0, 3);
@@ -191,7 +172,7 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="flex items-center">
                     <Medal className="mr-2 h-4 w-4 text-primary" />
-                    <div className="text-2xl font-bold">85%</div>
+                    <div className="text-2xl font-bold">-</div>
                   </div>
                 </CardContent>
               </Card>
@@ -219,7 +200,7 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="flex items-center">
                     <AlertCircle className="mr-2 h-4 w-4 text-primary" />
-                    <div className="text-2xl font-bold">↗ 23%</div>
+                    <div className="text-2xl font-bold">-</div>
                   </div>
                 </CardContent>
               </Card>
@@ -238,9 +219,9 @@ const Dashboard = () => {
                         <div key={course.id} className="space-y-2">
                           <div className="flex justify-between">
                             <span className="font-medium">{course.title}</span>
-                            <span className="text-sm text-muted-foreground">{Math.floor(Math.random() * 80 + 20)}%</span>
+                            <span className="text-sm text-muted-foreground">0%</span>
                           </div>
-                          <Progress value={Math.floor(Math.random() * 80 + 20)} />
+                          <Progress value={0} />
                         </div>
                       ))}
                       <Button variant="outline" size="sm" className="w-full" asChild>
@@ -274,11 +255,8 @@ const Dashboard = () => {
                             </div>
                           </div>
                           <div className="flex items-center">
-                            <span className={`font-medium ${
-                              Math.random() >= 0.8 ? "text-green-500" : 
-                              Math.random() >= 0.5 ? "text-amber-500" : "text-red-500"
-                            }`}>
-                              {Math.floor(Math.random() * 40 + 60)}%
+                            <span className="font-medium text-muted-foreground">
+                              Pending
                             </span>
                             <Button variant="ghost" size="icon" asChild>
                               <Link to={`/interview-result/${interview.id}`}>
@@ -360,9 +338,9 @@ const Dashboard = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Progress</span>
-                        <span className="text-sm font-medium">{Math.floor(Math.random() * 80 + 20)}%</span>
+                        <span className="text-sm font-medium">0%</span>
                       </div>
-                      <Progress value={Math.floor(Math.random() * 80 + 20)} />
+                      <Progress value={0} />
                     </div>
                     <Button variant="ghost" size="sm" className="mt-4 w-full" asChild>
                       <Link to={`/course/${course.id}`}>

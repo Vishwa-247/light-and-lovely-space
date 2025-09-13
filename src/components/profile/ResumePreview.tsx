@@ -24,106 +24,11 @@ export default function ResumePreview({ file, showAnalysis = false }: ResumePrev
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
-      // Enhanced text extraction simulation
+      // Real text extraction will be handled by the backend
       setTimeout(() => {
-        if (file.type === 'application/pdf') {
-          setExtractedText(`
-JOHN DOE
-Senior Software Engineer
-📧 john.doe@example.com | 📱 (555) 123-4567
-🔗 linkedin.com/in/johndoe | 💻 github.com/johndoe
-📍 San Francisco, CA
-
-PROFESSIONAL SUMMARY
-Experienced Senior Software Engineer with 5+ years in full-stack development,
-specializing in React, Node.js, and cloud architecture. Proven track record
-of leading teams and delivering scalable solutions that serve millions of users.
-
-TECHNICAL SKILLS
-Frontend: React, TypeScript, JavaScript, HTML5, CSS3, Next.js, Vue.js
-Backend: Node.js, Python, Express.js, FastAPI, Django
-Databases: MongoDB, PostgreSQL, MySQL, Redis
-Cloud: AWS, Google Cloud, Docker, Kubernetes, Jenkins
-Tools: Git, Linux, Agile/Scrum, Figma
-
-PROFESSIONAL EXPERIENCE
-
-Senior Software Engineer | TechCorp Inc. | 2021 - Present
-• Architected and developed 10+ scalable web applications using React and Node.js
-• Improved application performance by 40% through code optimization and caching strategies
-• Led a cross-functional team of 5 developers on multiple high-impact projects
-• Implemented CI/CD pipelines reducing deployment time by 60%
-• Mentored 3 junior developers, helping them advance their careers
-
-Software Engineer | StartupXYZ | 2019 - 2021
-• Built responsive web applications using modern JavaScript frameworks
-• Collaborated with cross-functional teams to deliver features ahead of schedule
-• Implemented automated testing reducing bugs by 30% and improving code quality
-• Participated in code reviews and established best practices for the team
-
-Junior Developer | DevStudio | 2018 - 2019
-• Developed frontend components using React and integrated with REST APIs
-• Assisted in database design and implementation using MongoDB
-• Participated in agile development processes and daily standups
-
-EDUCATION
-Bachelor of Science in Computer Science
-University of Technology | 2014 - 2018
-GPA: 3.8/4.0
-Relevant Coursework: Data Structures, Algorithms, Software Engineering, Database Systems
-
-PROJECTS
-
-E-Commerce Platform (2023)
-• Built full-stack e-commerce solution with React, Node.js, and MongoDB
-• Integrated payment processing (Stripe), inventory management, and user authentication
-• Deployed on AWS with auto-scaling, achieving 99.9% uptime
-• Technologies: React, Node.js, MongoDB, AWS, Docker
-
-Task Management App (2022)
-• Developed React Native mobile application with real-time synchronization
-• Implemented WebSocket connections for real-time updates
-• Published on App Store and Google Play with 4.8/5 rating
-• Technologies: React Native, Firebase, WebSockets
-
-CERTIFICATIONS
-• AWS Certified Solutions Architect (2023)
-• Google Cloud Professional Developer (2022)
-• MongoDB Certified Developer (2021)
-
-ACHIEVEMENTS
-• Employee of the Quarter - Q3 2023
-• Led migration project that saved company $100K annually
-• Speaker at ReactConf 2023 - "Optimizing React Performance"
-          `);
-        } else {
-          setExtractedText(`
-SARAH JOHNSON
-Product Manager
-sarah.johnson@email.com | (555) 987-6543
-linkedin.com/in/sarahjohnson
-
-SUMMARY
-Results-driven Product Manager with 4+ years of experience leading cross-functional teams
-to deliver innovative products that drive business growth and user satisfaction.
-
-EXPERIENCE
-Senior Product Manager | InnovaTech | 2022 - Present
-• Led product strategy for mobile app with 2M+ active users
-• Increased user engagement by 35% through data-driven feature development
-• Managed product roadmap and coordinated with engineering and design teams
-
-EDUCATION
-MBA in Business Administration | Stanford University | 2020
-BS in Computer Science | UC Berkeley | 2018
-
-SKILLS
-Product Strategy, Agile Development, Data Analysis, User Research,
-A/B Testing, Wireframing, Jira, Confluence, SQL
-          `);
-        }
+        setExtractedText("Text extraction is handled by the Profile Service backend. Upload your resume to see the extracted content.");
         setIsProcessing(false);
-      }, 1500);
+      }, 1000);
 
       return () => URL.revokeObjectURL(url);
     }
@@ -244,33 +149,30 @@ A/B Testing, Wireframing, Jira, Confluence, SQL
             <div className="space-y-4">
               <h4 className="font-medium text-sm">AI Analysis Results</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="text-lg font-bold text-green-600">8</div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="text-lg font-bold text-gray-600">-</div>
                   <div className="text-xs text-muted-foreground">Sections Found</div>
                 </div>
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-lg font-bold text-blue-600">15</div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="text-lg font-bold text-gray-600">-</div>
                   <div className="text-xs text-muted-foreground">Skills Detected</div>
                 </div>
-                <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="text-lg font-bold text-purple-600">1,240</div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="text-lg font-bold text-gray-600">-</div>
                   <div className="text-xs text-muted-foreground">Words</div>
                 </div>
-                <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <div className="text-lg font-bold text-orange-600">2</div>
+                <div className="text-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-800">
+                  <div className="text-lg font-bold text-gray-600">-</div>
                   <div className="text-xs text-muted-foreground">Pages</div>
                 </div>
               </div>
               
               {/* Key Insights */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h5 className="font-semibold text-sm mb-2 text-blue-800 dark:text-blue-200">Key Insights</h5>
-                <ul className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
-                  <li>• Strong technical background with modern frameworks</li>
-                  <li>• Leadership experience with team management</li>
-                  <li>• Quantifiable achievements and impact metrics</li>
-                  <li>• Well-structured professional progression</li>
-                </ul>
+              <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+                <h5 className="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Analysis Available After Backend Processing</h5>
+                <p className="text-xs text-gray-700 dark:text-gray-300">
+                  Upload your resume through the Profile Builder to get AI-powered insights and analysis.
+                </p>
               </div>
             </div>
           )}
