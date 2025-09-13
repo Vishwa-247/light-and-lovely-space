@@ -1,266 +1,247 @@
-import { supabase } from '@/integrations/supabase/client';
 import { UserProfile, ProfileFormData } from '@/types/profile';
+
+const PROFILE_SERVICE_BASE_URL = 'http://localhost:8006';
 
 export interface ProfileResponse {
   profile: UserProfile;
 }
 
+export interface ResumeUploadResponse {
+  success: boolean;
+  extraction_id: string;
+  extracted_data: any;
+  confidence_score: number;
+  message: string;
+  metadata: {
+    filename: string;
+    file_size: number;
+    extraction_date: string;
+    ai_provider: string;
+    storage_path: string;
+  };
+}
+
 export const profileService = {
   async getProfile(userId: string): Promise<UserProfile> {
-    // Get main profile data
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(`Failed to fetch profile: ${error.message}`);
+    try {
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/profile/${userId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Profile doesn't exist, return empty profile
+          return this.createEmptyProfile(userId);
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return this.transformBackendToProfile(data.profile);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      throw new Error(`Failed to fetch profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    // Get related data
-    const [educationData, experienceData, projectsData, skillsData, certificationsData] = await Promise.all([
-      supabase.from('user_education').select('*').eq('user_id', userId),
-      supabase.from('user_experience').select('*').eq('user_id', userId),
-      supabase.from('user_projects').select('*').eq('user_id', userId),
-      supabase.from('user_skills').select('*').eq('user_id', userId),
-      supabase.from('user_certifications').select('*').eq('user_id', userId)
-    ]);
-
-    return this.transformDatabaseToProfile(profile, {
-      education: educationData.data || [],
-      experience: experienceData.data || [],
-      projects: projectsData.data || [],
-      skills: skillsData.data || [],
-      certifications: certificationsData.data || []
-    });
   },
 
   async updateProfile(userId: string, updates: Partial<ProfileFormData>): Promise<UserProfile> {
-    // Update main profile
-    const { data: profileData, error } = await supabase
-      .from('user_profiles')
-      .upsert({
-        user_id: userId,
-        full_name: updates.personalInfo?.fullName,
-        email: updates.personalInfo?.email,
-        phone: updates.personalInfo?.phone,
-        location: updates.personalInfo?.location,
-        linkedin_url: updates.personalInfo?.linkedin,
-        github_url: updates.personalInfo?.github,
-        portfolio_url: updates.personalInfo?.portfolio,
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    try {
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/profile/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
 
-    if (error) {
-      throw new Error(`Failed to update profile: ${error.message}`);
-    }
-
-    // Update related tables if provided
-    if (updates.education) {
-      await supabase.from('user_education').delete().eq('user_id', userId);
-      if (updates.education.length > 0) {
-        await supabase.from('user_education').insert(
-          updates.education.map(edu => ({
-            id: edu.id,
-            user_id: userId,
-            institution: edu.institution,
-            degree: edu.degree,
-            field_of_study: edu.field,
-            start_year: edu.startYear,
-            end_year: edu.endYear,
-            grade: edu.grade,
-            description: edu.description
-          }))
-        );
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    }
 
-    if (updates.experience) {
-      await supabase.from('user_experience').delete().eq('user_id', userId);
-      if (updates.experience.length > 0) {
-        await supabase.from('user_experience').insert(
-          updates.experience.map(exp => ({
-            id: exp.id,
-            user_id: userId,
-            company: exp.company,
-            position: exp.position,
-            start_date: exp.startDate,
-            end_date: exp.endDate,
-            is_current: exp.current,
-            description: exp.description,
-            technologies: exp.technologies,
-            location: exp.location
-          }))
-        );
-      }
+      const data = await response.json();
+      return this.transformBackendToProfile(data.profile);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw new Error(`Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    if (updates.projects) {
-      await supabase.from('user_projects').delete().eq('user_id', userId);
-      if (updates.projects.length > 0) {
-        await supabase.from('user_projects').insert(
-          updates.projects.map(proj => ({
-            id: proj.id,
-            user_id: userId,
-            title: proj.title,
-            description: proj.description,
-            technologies: proj.technologies,
-            start_date: proj.startDate,
-            end_date: proj.endDate,
-            github_url: proj.githubUrl,
-            live_url: proj.liveUrl,
-            highlights: proj.highlights
-          }))
-        );
-      }
-    }
-
-    if (updates.skills) {
-      await supabase.from('user_skills').delete().eq('user_id', userId);
-      if (updates.skills.length > 0) {
-        await supabase.from('user_skills').insert(
-          updates.skills.map(skill => ({
-            user_id: userId,
-            name: skill.name,
-            level: skill.level,
-            category: skill.category
-          }))
-        );
-      }
-    }
-
-    if (updates.certifications) {
-      await supabase.from('user_certifications').delete().eq('user_id', userId);
-      if (updates.certifications.length > 0) {
-        await supabase.from('user_certifications').insert(
-          updates.certifications.map(cert => ({
-            id: cert.id,
-            user_id: userId,
-            name: cert.name,
-            issuer: cert.issuer,
-            issue_date: cert.issueDate,
-            expiry_date: cert.expiryDate,
-            credential_id: cert.credentialId,
-            credential_url: cert.credentialUrl
-          }))
-        );
-      }
-    }
-
-    return this.getProfile(userId);
   },
 
-  transformDatabaseToProfile(dbProfile: any, relatedData: any): UserProfile {
-    const profile = dbProfile || {};
-    
+  async uploadResume(file: File, userId: string): Promise<ResumeUploadResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+      formData.append('user_id', userId);
+
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/extract-profile`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Failed to upload resume:', error);
+      throw new Error(`Failed to upload resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  async applyExtractedData(userId: string, extractedData: any): Promise<boolean> {
+    try {
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/profile/${userId}/apply-extraction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(extractedData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Failed to apply extracted data:', error);
+      throw new Error(`Failed to apply extracted data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  async getUserResume(userId: string): Promise<any> {
+    try {
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/profile/${userId}/resume`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.resume;
+    } catch (error) {
+      console.error('Failed to fetch resume:', error);
+      return null;
+    }
+  },
+
+  async deleteResume(userId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${PROFILE_SERVICE_BASE_URL}/profile/${userId}/resume`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Failed to delete resume:', error);
+      throw new Error(`Failed to delete resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  },
+
+  createEmptyProfile(userId: string): UserProfile {
     return {
-      userId: profile.user_id || '',
+      userId,
       personalInfo: {
-        fullName: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        location: profile.location || '',
-        linkedin: profile.linkedin_url || '',
-        github: profile.github_url || '',
-        portfolio: profile.portfolio_url || ''
+        fullName: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        github: '',
+        portfolio: '',
       },
-      education: relatedData.education.map((edu: any) => ({
-        id: edu.id,
-        institution: edu.institution,
-        degree: edu.degree,
-        field: edu.field_of_study,
-        startYear: edu.start_year,
-        endYear: edu.end_year,
-        grade: edu.grade,
-        description: edu.description
-      })),
-      experience: relatedData.experience.map((exp: any) => ({
-        id: exp.id,
-        company: exp.company,
-        position: exp.position,
-        startDate: exp.start_date,
-        endDate: exp.end_date,
-        current: exp.is_current || false,
-        description: exp.description,
-        technologies: exp.technologies || [],
-        location: exp.location
-      })),
-      projects: relatedData.projects.map((proj: any) => ({
-        id: proj.id,
-        title: proj.title,
-        description: proj.description,
-        technologies: proj.technologies || [],
-        startDate: proj.start_date,
-        endDate: proj.end_date,
-        githubUrl: proj.github_url,
-        liveUrl: proj.live_url,
-        highlights: proj.highlights || []
-      })),
-      skills: relatedData.skills.map((skill: any) => ({
-        name: skill.name,
-        level: skill.level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
-        category: skill.category as 'Technical' | 'Soft' | 'Language' | 'Framework' | 'Tool'
-      })),
-      certifications: relatedData.certifications.map((cert: any) => ({
-        id: cert.id,
-        name: cert.name,
-        issuer: cert.issuer,
-        issueDate: cert.issue_date,
-        expiryDate: cert.expiry_date,
-        credentialId: cert.credential_id,
-        credentialUrl: cert.credential_url
-      })),
-      summary: profile.professional_summary || '',
-      completionPercentage: profile.completion_percentage || 0,
-      createdAt: profile.created_at || new Date().toISOString(),
-      updatedAt: profile.updated_at || new Date().toISOString()
+      education: [],
+      experience: [],
+      projects: [],
+      skills: [],
+      certifications: [],
+      completionPercentage: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   },
 
-  async uploadResume(file: File, userId: string): Promise<any> {
-    // Upload file to Supabase Storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('resume-files')
-      .upload(fileName, file);
-
-    if (uploadError) {
-      throw new Error(`Failed to upload file: ${uploadError.message}`);
+  transformBackendToProfile(backendProfile: any): UserProfile {
+    if (!backendProfile) {
+      throw new Error('No profile data received from backend');
     }
 
-    // Call the resume-extractor Edge Function
-    const { data, error } = await supabase.functions.invoke('resume-extractor', {
-      body: new FormData([
-        ['resume', file],
-        ['user_id', userId]
-      ] as any)
-    });
-    
-    if (error) {
-      throw new Error(`Failed to extract resume data: ${error.message}`);
-    }
-    
-    return data;
-  },
-
-  async getProfileAnalysis(userId: string): Promise<any> {
-    const { data, error } = await supabase
-      .from('resume_extractions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (error) {
-      throw new Error(`Failed to fetch analysis: ${error.message}`);
-    }
-    
-    return data;
+    return {
+      userId: backendProfile.user_id || '',
+      personalInfo: {
+        fullName: backendProfile.full_name || '',
+        email: backendProfile.email || '',
+        phone: backendProfile.phone || '',
+        location: backendProfile.location || '',
+        linkedin: backendProfile.linkedin_url || '',
+        github: backendProfile.github_url || '',
+        portfolio: backendProfile.portfolio_url || '',
+      },
+      education: (backendProfile.education || []).map((edu: any) => ({
+        id: edu.id,
+        institution: edu.institution,
+        degree: edu.degree,
+        field: edu.field_of_study || edu.field,
+        startYear: edu.start_year || edu.startYear,
+        endYear: edu.end_year || edu.endYear,
+        grade: edu.grade || '',
+        description: edu.description || '',
+      })),
+      experience: (backendProfile.experience || []).map((exp: any) => ({
+        id: exp.id,
+        company: exp.company,
+        position: exp.position,
+        startDate: exp.start_date || exp.startDate,
+        endDate: exp.end_date || exp.endDate,
+        current: exp.is_current || exp.current || false,
+        description: exp.description || '',
+        technologies: exp.technologies || [],
+        location: exp.location || '',
+      })),
+      projects: (backendProfile.projects || []).map((proj: any) => ({
+        id: proj.id,
+        title: proj.title,
+        description: proj.description || '',
+        technologies: proj.technologies || [],
+        startDate: proj.start_date || proj.startDate,
+        endDate: proj.end_date || proj.endDate,
+        githubUrl: proj.github_url || proj.githubUrl || '',
+        liveUrl: proj.live_url || proj.liveUrl || '',
+        highlights: proj.highlights || [],
+      })),
+      skills: (backendProfile.skills || []).map((skill: any) => ({
+        name: skill.name,
+        level: skill.level as 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert',
+        category: skill.category as 'Technical' | 'Soft' | 'Language' | 'Framework' | 'Tool',
+      })),
+      certifications: (backendProfile.certifications || []).map((cert: any) => ({
+        id: cert.id,
+        name: cert.name,
+        issuer: cert.issuer,
+        issueDate: cert.issue_date || cert.issueDate,
+        expiryDate: cert.expiry_date || cert.expiryDate || '',
+        credentialId: cert.credential_id || cert.credentialId || '',
+        credentialUrl: cert.credential_url || cert.credentialUrl || '',
+      })),
+      summary: backendProfile.professional_summary || '',
+      resumeData: backendProfile.resume_data ? {
+        filename: backendProfile.resume_data.filename,
+        uploadDate: backendProfile.resume_data.upload_date,
+        parsedData: backendProfile.resume_data.parsed_data,
+        extractedText: backendProfile.resume_data.extracted_text,
+        aiAnalysis: backendProfile.resume_data.ai_analysis,
+        skillGaps: backendProfile.resume_data.skill_gaps,
+        recommendations: backendProfile.resume_data.recommendations,
+      } : undefined,
+      completionPercentage: backendProfile.completion_percentage || 0,
+      createdAt: backendProfile.created_at || new Date().toISOString(),
+      updatedAt: backendProfile.updated_at || new Date().toISOString(),
+    };
   },
 };

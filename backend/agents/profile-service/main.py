@@ -17,7 +17,8 @@ from shared.database.supabase_connection import (
     update_user_profile, save_user_education, save_user_experience,
     save_user_projects, save_user_skills, save_user_certifications,
     get_user_education, get_user_experience, get_user_projects,
-    get_user_skills, get_user_certifications, health_check as db_health_check
+    get_user_skills, get_user_certifications, health_check as db_health_check,
+    supabase_manager
 )
 
 # Configure logging
@@ -191,12 +192,28 @@ async def extract_profile_data(
     resume: UploadFile = File(...),
     user_id: str = Form(...)
 ):
-    """Extract profile data from resume to populate profile builder"""
+    """Extract profile data from resume and store in Supabase"""
     try:
         logger.info(f"🔍 Starting profile extraction for user: {user_id}")
         
         # Read file content
         file_content = await resume.read()
+        
+        # Store resume file in Supabase Storage
+        file_ext = resume.filename.split('.')[-1] if '.' in resume.filename else 'pdf'
+        storage_filename = f"{user_id}/{int(datetime.now().timestamp())}.{file_ext}"
+        
+        try:
+            # Upload file to Supabase storage
+            storage_result = supabase_manager.supabase.storage.from_('resume-files').upload(
+                storage_filename,
+                file_content,
+                file_options={"content-type": resume.content_type}
+            )
+            logger.info(f"📁 File uploaded to storage: {storage_filename}")
+        except Exception as storage_error:
+            logger.warning(f"⚠️ Storage upload failed: {storage_error}")
+            # Continue with extraction even if storage fails
         
         # Extract text based on file type
         if resume.content_type == "application/pdf":
@@ -211,6 +228,23 @@ async def extract_profile_data(
         
         logger.info(f"📄 Extracted {len(resume_text)} characters from resume")
         
+        # Save resume metadata to database
+        try:
+            resume_record = {
+                "user_id": user_id,
+                "filename": resume.filename,
+                "file_path": storage_filename,
+                "file_size": len(file_content),
+                "extracted_text": resume_text[:10000],  # Store first 10k chars
+                "processing_status": "completed",
+                "extraction_status": "processing"
+            }
+            
+            supabase_manager.supabase.table('user_resumes').insert(resume_record).execute()
+            logger.info("💾 Resume metadata saved to database")
+        except Exception as db_error:
+            logger.warning(f"⚠️ Failed to save resume metadata: {db_error}")
+        
         # Extract structured data using Groq
         if not groq_client:
             raise HTTPException(status_code=503, detail="AI extraction service not available")
@@ -218,14 +252,33 @@ async def extract_profile_data(
         logger.info("🧠 Extracting profile data with Groq AI...")
         extracted_data = await extract_profile_with_groq(resume_text)
         
-        # Calculate confidence score based on data completeness
+        # Transform extracted data to match frontend format
+        formatted_data = {
+            "personalInfo": {
+                "fullName": extracted_data.get("personal_info", {}).get("name", ""),
+                "email": extracted_data.get("personal_info", {}).get("email", ""),
+                "phone": extracted_data.get("personal_info", {}).get("phone", ""),
+                "location": extracted_data.get("personal_info", {}).get("location", ""),
+                "linkedin": extracted_data.get("personal_info", {}).get("linkedin", ""),
+                "github": extracted_data.get("personal_info", {}).get("github", ""),
+                "portfolio": extracted_data.get("personal_info", {}).get("portfolio", ""),
+            },
+            "education": extracted_data.get("education", []),
+            "experience": extracted_data.get("experience", []),
+            "projects": extracted_data.get("projects", []),
+            "skills": extracted_data.get("skills", []),
+            "certifications": extracted_data.get("certifications", []),
+            "summary": extracted_data.get("professional_summary", "")
+        }
+        
+        # Calculate confidence score
         confidence_score = 0.0
         total_fields = 0
         filled_fields = 0
         
         # Check personal info completeness
-        personal_info = extracted_data.get("personal_info", {})
-        for field in ["name", "email", "phone", "location"]:
+        personal_info = formatted_data["personalInfo"]
+        for field in ["fullName", "email", "phone", "location"]:
             total_fields += 1
             if personal_info.get(field) and personal_info.get(field).strip():
                 filled_fields += 1
@@ -234,23 +287,39 @@ async def extract_profile_data(
         sections = ["skills", "experience", "education", "projects", "certifications"]
         for section in sections:
             total_fields += 1
-            if extracted_data.get(section) and len(extracted_data.get(section, [])) > 0:
+            if formatted_data.get(section) and len(formatted_data.get(section, [])) > 0:
                 filled_fields += 1
         
         confidence_score = (filled_fields / total_fields) * 100 if total_fields > 0 else 0
+        
+        # Store extraction result
+        try:
+            extraction_record = {
+                "user_id": user_id,
+                "extracted_data": formatted_data,
+                "confidence_score": confidence_score,
+                "status": "completed",
+                "extraction_type": "groq_ai"
+            }
+            
+            supabase_manager.supabase.table('resume_extractions').insert(extraction_record).execute()
+            logger.info("💾 Extraction result saved to database")
+        except Exception as db_error:
+            logger.warning(f"⚠️ Failed to save extraction result: {db_error}")
         
         # Prepare response
         result = {
             "success": True,
             "extraction_id": f"extraction_{user_id}_{int(datetime.now().timestamp())}",
-            "extracted_data": extracted_data,
+            "extracted_data": formatted_data,
             "confidence_score": round(confidence_score, 2),
             "message": f"Successfully extracted profile data with {confidence_score:.1f}% completeness",
             "metadata": {
                 "filename": resume.filename,
                 "file_size": len(file_content),
                 "extraction_date": datetime.now().isoformat(),
-                "ai_provider": "groq"
+                "ai_provider": "groq",
+                "storage_path": storage_filename
             }
         }
         
@@ -261,6 +330,85 @@ async def extract_profile_data(
         raise
     except Exception as e:
         logger.error(f"💥 Critical error in extract_profile: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.post("/profile/{user_id}/apply-extraction")
+async def apply_extracted_data(user_id: str, extracted_data: Dict[str, Any]):
+    """Apply extracted resume data to user profile"""
+    try:
+        logger.info(f"🔄 Applying extracted data for user: {user_id}")
+        
+        # Apply the extracted data using the existing update endpoint
+        await update_profile(user_id, extracted_data)
+        
+        # Mark extraction as applied
+        try:
+            supabase_manager.supabase.table('resume_extractions')\
+                .update({"applied_at": datetime.now().isoformat(), "applied_by": user_id})\
+                .eq('user_id', user_id)\
+                .order('created_at', desc=True)\
+                .limit(1)\
+                .execute()
+        except Exception as db_error:
+            logger.warning(f"⚠️ Failed to mark extraction as applied: {db_error}")
+        
+        logger.info(f"✅ Extracted data applied successfully for user: {user_id}")
+        return {
+            "success": True,
+            "message": "Profile updated successfully with extracted data"
+        }
+        
+    except Exception as e:
+        logger.error(f"💥 Error applying extracted data: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.get("/profile/{user_id}/resume")
+async def get_user_resume(user_id: str):
+    """Get user's resume information"""
+    try:
+        result = supabase_manager.supabase.table('user_resumes')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .order('upload_date', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if result.data:
+            return {"resume": result.data[0]}
+        else:
+            return {"resume": None}
+            
+    except Exception as e:
+        logger.error(f"💥 Error fetching resume: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.delete("/profile/{user_id}/resume")
+async def delete_user_resume(user_id: str):
+    """Delete user's resume"""
+    try:
+        # Get resume info first
+        result = supabase_manager.supabase.table('user_resumes')\
+            .select('file_path')\
+            .eq('user_id', user_id)\
+            .execute()
+        
+        # Delete from storage
+        if result.data:
+            for resume in result.data:
+                try:
+                    supabase_manager.supabase.storage.from_('resume-files').remove([resume['file_path']])
+                except Exception as storage_error:
+                    logger.warning(f"⚠️ Failed to delete from storage: {storage_error}")
+        
+        # Delete from database
+        supabase_manager.supabase.table('user_resumes').delete().eq('user_id', user_id).execute()
+        supabase_manager.supabase.table('resume_extractions').delete().eq('user_id', user_id).execute()
+        
+        logger.info(f"✅ Resume deleted successfully for user: {user_id}")
+        return {"success": True, "message": "Resume deleted successfully"}
+        
+    except Exception as e:
+        logger.error(f"💥 Error deleting resume: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/profile/{user_id}")

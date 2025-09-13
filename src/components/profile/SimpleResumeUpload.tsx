@@ -11,7 +11,7 @@ import ResumeFilePreview from "./ResumeFilePreview";
 import { ExtractedResumeData } from "@/types/resume";
 
 const SimpleResumeUpload = () => {
-  const { profile, uploadResume, applyExtractedData } = useProfile();
+  const { profile, uploadResume, applyExtractedData, deleteResume } = useProfile();
   const { toast } = useToast();
   
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -184,10 +184,21 @@ const SimpleResumeUpload = () => {
   });
 
   const handleDelete = async () => {
-    toast({
-      title: "Feature Coming Soon",
-      description: "Resume deletion will be available in the next update.",
-    });
+    try {
+      const success = await deleteResume();
+      if (success) {
+        toast({
+          title: "Resume Deleted",
+          description: "Your resume has been successfully deleted.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete resume. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const currentResume = profile?.resumeData;
