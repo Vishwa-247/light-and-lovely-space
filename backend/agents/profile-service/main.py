@@ -19,8 +19,11 @@ from shared.database.supabase_connection import (
     save_user_projects, save_user_skills, save_user_certifications,
     get_user_education, get_user_experience, get_user_projects,
     get_user_skills, get_user_certifications, health_check as db_health_check,
-    supabase_manager
+    SupabaseManager
 )
+
+# Create a SupabaseManager instance
+supabase_manager = SupabaseManager()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
