@@ -1,239 +1,279 @@
-# StudyMate Backend
+# 🚀 StudyMate Backend - Local Development Setup
 
-**Simplified microservices backend focusing on Profile Builder functionality with Supabase integration.**
+A microservices-based backend system for StudyMate that runs entirely on your local machine without Docker. Features AI-powered profile building, resume analysis, and comprehensive learning analytics.
 
-> **📋 See REMOVED.md** for details on removed components and future development plans.
-> **🚀 See EXECUTION.md** for detailed setup and running instructions.
+## 🏗️ Architecture
 
-## 🏗️ Current Architecture
+### Core Services
+- **API Gateway** (Port 8000): Central routing and authentication
+- **Profile Service** (Port 8006): User profile management and AI-powered resume extraction
+- **Resume Analyzer** (Port 8003): Resume analysis and job matching
+- **DSA Service** (Port 8004): Data Structures & Algorithms practice tracking
 
-**Clean & Focused Microservices:**
+### Technology Stack
+- **Backend**: FastAPI + Python 3.8+
+- **Database**: Supabase PostgreSQL
+- **AI**: Groq API for resume analysis and profile extraction
+- **Authentication**: JWT tokens
+- **Storage**: Supabase Storage for file uploads
 
-- **API Gateway** (Port 8000) - Central routing and authentication with Supabase
-- **Resume Analyzer** (Port 8003) - AI-powered resume analysis using Groq API
-- **Profile Service** (Port 8006) - User profile management with Supabase integration
+## ⚡ Quick Start
 
-**Database:** Supabase PostgreSQL with Row Level Security (RLS)
-**Authentication:** Supabase Auth
-**File Storage:** Supabase Storage
-**AI Provider:** Groq API for resume analysis
+### 1. Prerequisites
+- **Python 3.8+** installed
+- **Groq API Key** (get free at [groq.com](https://groq.com/))
+- **Supabase Project** with service key
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Groq API Key from [console.groq.com](https://console.groq.com/)
-- Supabase Project (already configured)
-
-### Environment Setup
-
-1. **Set Environment Variables**
-   Create a `.env` file in the `backend` directory:
-   ```bash
-   GROQ_API_KEY=your_groq_api_key_here
-   SUPABASE_URL=https://jwmsgrodliegekbrhvgt.supabase.co
-   SUPABASE_SERVICE_KEY=your_supabase_service_key_here
-   SUPABASE_DB_URL=your_supabase_db_connection_string
-   JWT_SECRET=your_jwt_secret_key_here
-   RESUME_ANALYZER_URL=http://resume-analyzer:8003
-   PROFILE_SERVICE_URL=http://profile-service:8006
-   ```
-
-2. **Build and Run Services**
-   ```bash
-   # Navigate to backend directory
-   cd backend
-   
-   # Build and start all services
-   docker-compose up --build
-   
-   # Or run in detached mode
-   docker-compose up --build -d
-   ```
-
-3. **Verify Services**
-   Check if all services are running:
-   ```bash
-   docker-compose ps
-   ```
-
-## 🔧 Service Endpoints
-
-### API Gateway (http://localhost:8000)
-- `GET /health` - Health check
-- `GET /docs` - FastAPI interactive documentation
-- `POST /api/resume/analyze` - Analyze resume (proxied to resume-analyzer)
-- `POST /api/profile/extract` - Extract profile data (proxied to profile-service)
-- `GET /api/profile/{user_id}` - Get user profile (proxied to profile-service)
-- `PUT /api/profile/{user_id}` - Update user profile (proxied to profile-service)
-
-### Resume Analyzer (http://localhost:8003)
-- `GET /health` - Health check
-- `GET /docs` - Service documentation
-- `POST /analyze` - Analyze resume file with AI-powered job matching
-- **Features:** PDF/DOCX parsing, ATS scoring, skill extraction, job role matching
-
-### Profile Service (http://localhost:8006)
-- `GET /health` - Health check
-- `GET /docs` - Service documentation
-- `POST /extract-profile` - Extract structured profile data from resume using Groq AI
-- `GET /profile/{user_id}` - Retrieve user profile from Supabase
-- `PUT /profile/{user_id}` - Update user profile in Supabase
-- **Features:** Resume parsing, profile auto-population, Supabase integration
-
-## 🧪 Testing the Services
-
-### 1. Health Checks
+### 2. Environment Setup
 ```bash
-# Test all services are running
+# Clone and navigate to backend
+cd backend
+
+# Run automated setup
+python scripts/setup.py
+
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env with your actual API keys
+```
+
+### 3. Start Services
+```bash
+# Option 1: Start all services at once
+./scripts/start-all-services.sh        # Linux/macOS
+scripts/start-all-services.bat         # Windows
+
+# Option 2: Start individual services
+./scripts/start-profile-service.sh     # Profile Service (Port 8006)
+./scripts/start-resume-analyzer.sh     # Resume Analyzer (Port 8003)  
+./scripts/start-api-gateway.sh         # API Gateway (Port 8000)
+```
+
+### 4. Test the Setup
+```bash
+# Test service health
+curl http://localhost:8000/health       # API Gateway
+curl http://localhost:8006/health       # Profile Service
+curl http://localhost:8003/health       # Resume Analyzer
+
+# Run comprehensive tests
+python test_all_services.py
+```
+
+## 🔧 Service Details
+
+### API Gateway (Port 8000)
+**Purpose**: Central routing, authentication, and request forwarding
+- **Endpoints**: `/auth/*`, `/api/profile/*`, `/resume/*`
+- **Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+### Profile Service (Port 8006) 
+**Purpose**: AI-powered profile building and management
+- **Key Features**:
+  - AI resume extraction using Groq
+  - Complete profile CRUD operations
+  - Education, experience, projects, skills, certifications
+- **Documentation**: http://localhost:8006/docs
+- **Health Check**: http://localhost:8006/health
+
+### Resume Analyzer (Port 8003)
+**Purpose**: Resume analysis and job matching
+- **Key Features**:
+  - Resume parsing and analysis
+  - Job role matching
+  - Skills gap analysis
+- **Documentation**: http://localhost:8003/docs
+- **Health Check**: http://localhost:8003/health
+
+## 📁 Project Structure
+
+```
+backend/
+├── agents/
+│   ├── profile-service/        # Profile management service
+│   │   ├── main.py            # Service entry point
+│   │   └── requirements.txt   # Service-specific dependencies
+│   ├── resume-analyzer/       # Resume analysis service
+│   │   ├── main.py           
+│   │   └── requirements.txt
+│   └── dsa-service/          # DSA practice tracking
+│       ├── main.py
+│       └── requirements.txt
+├── api-gateway/              # Central API gateway
+│   ├── main.py              # Gateway entry point
+│   └── requirements.txt
+├── shared/                   # Common utilities
+│   └── database/
+│       └── supabase_connection.py  # Database connection layer
+├── scripts/                  # Local development scripts
+│   ├── setup.py             # Automated environment setup
+│   ├── start-all-services.*  # Start all services
+│   ├── start-profile-service.*  # Individual service starters
+│   └── ...
+├── .env.example             # Environment template
+├── requirements.txt         # All dependencies
+└── README.md               # This file
+```
+
+## 🔑 Environment Variables
+
+### Required Variables (.env file)
+```env
+# Groq AI Configuration
+GROQ_API_KEY=your_groq_api_key_here
+
+# Supabase Configuration  
+SUPABASE_URL=https://jwmsgrodliegekbrhvgt.supabase.co
+SUPABASE_SERVICE_KEY=your_supabase_service_key_here
+SUPABASE_DB_URL=postgresql://postgres:[password]@db.jwmsgrodliegekbrhvgt.supabase.co:5432/postgres
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+
+# Service URLs (for production/custom setups)
+RESUME_ANALYZER_URL=http://localhost:8003
+PROFILE_SERVICE_URL=http://localhost:8006
+```
+
+### Getting API Keys
+1. **Groq API Key**: 
+   - Visit [groq.com](https://groq.com/)
+   - Sign up for free account
+   - Generate API key from dashboard
+
+2. **Supabase Credentials**:
+   - Visit [supabase.com](https://supabase.com/)
+   - Create new project or use existing
+   - Copy credentials from Settings > API
+
+## 🧪 Testing
+
+### Automated Testing
+```bash
+# Run comprehensive service tests
+python test_all_services.py
+
+# Test individual components
+python test_service.py          # Legacy profile service tests
+```
+
+### Manual Testing
+```bash
+# Health checks
 curl http://localhost:8000/health
+curl http://localhost:8006/health  
 curl http://localhost:8003/health
-curl http://localhost:8006/health
+
+# Test profile extraction
+curl -X POST "http://localhost:8006/extract-profile" \
+  -F "resume=@sample_resume.pdf" \
+  -F "user_id=test-123"
+
+# Test through API Gateway
+curl -X POST "http://localhost:8000/api/profile/extract-profile" \
+  -H "Authorization: Bearer your_jwt_token" \
+  -F "resume=@sample_resume.pdf" \
+  -F "user_id=test-123"
 ```
 
-### 2. Test Resume Analysis
+## 🔍 Development Workflow
+
+### Starting Development
+1. **Setup Environment**: Run `python scripts/setup.py`
+2. **Configure .env**: Add your API keys
+3. **Start Services**: Use `start-all-services.*` scripts
+4. **Test Setup**: Run `python test_all_services.py`
+5. **Start Frontend**: Navigate to frontend and run your React app
+
+### Making Changes
+1. **Code Changes**: Edit service files in `agents/*/main.py`
+2. **Restart Service**: Ctrl+C and restart individual service
+3. **Test Changes**: Use health endpoints and test scripts
+4. **Check Logs**: Services output detailed logs to console
+
+### Stopping Services
 ```bash
-# Analyze resume against job role
-curl -X POST http://localhost:8000/api/resume/analyze \
-  -F "file=@path/to/your/resume.pdf" \
-  -F "job_role=Software Engineer" \
-  -F "user_id=test_user_123"
+# Stop all services gracefully
+./scripts/stop-all-services.sh     # Linux/macOS
+scripts/stop-all-services.bat      # Windows
+
+# Or manually
+pkill -f "python.*main.py"
 ```
 
-### 3. Test Profile Extraction
-```bash
-# Extract profile data from resume
-curl -X POST http://localhost:8000/api/profile/extract \
-  -F "file=@path/to/your/resume.pdf" \
-  -F "user_id=test_user_123"
-```
+## 🐛 Troubleshooting
 
-### 4. Get User Profile
-```bash
-curl -X GET http://localhost:8000/api/profile/test_user_123
-```
+### Common Issues
 
-### 5. Interactive Testing
-Visit http://localhost:8000/docs for Swagger UI testing interface
+| Problem | Solution |
+|---------|----------|
+| Port already in use | Run stop-all-services script or restart terminal |
+| Import errors | Check virtual environment activation and dependencies |
+| Database connection errors | Verify Supabase credentials in `.env` |
+| Groq API errors | Check API key validity and quota |
+| Service not responding | Check if all dependencies are installed |
 
-## 🐛 Debugging and Logs
+### Debugging Steps
+1. **Check Service Health**: Visit health endpoints
+2. **Verify Environment**: Ensure `.env` file exists and is configured
+3. **Check Logs**: Service logs show detailed error information
+4. **Test Dependencies**: Run `pip list` to verify installations
+5. **Port Conflicts**: Use `netstat -tulpn | grep :PORT` to check port usage
 
-### View Service Logs
-```bash
-# All services
-docker-compose logs
+## 📈 Performance & Scaling
 
-# Specific service
-docker-compose logs profile-service
-docker-compose logs api-gateway
+### Local Development Limits
+- **Concurrent Users**: 10-50 (development testing)
+- **File Upload Size**: 10MB max per resume
+- **Request Timeout**: 60 seconds for AI processing
+- **Database Connections**: 10 max per service
 
-# Follow logs in real-time
-docker-compose logs -f profile-service
-```
+## 🔒 Security Notes
 
-### Check Service Status
-```bash
-# List all containers
-docker-compose ps
+### Development Security
+- Default JWT secret provided (change for production)
+- All services accept connections from localhost only
+- CORS configured for common frontend ports (3000, 5173)
+- No HTTPS required for local development
 
-# Check specific container
-docker-compose ps profile-service
-```
+## 📚 API Documentation
 
-### Access Service Containers
-```bash
-# Access service containers
-docker-compose exec api-gateway bash
-docker-compose exec resume-analyzer bash
-docker-compose exec profile-service bash
-```
+### Interactive Documentation
+- **API Gateway**: http://localhost:8000/docs
+- **Profile Service**: http://localhost:8006/docs  
+- **Resume Analyzer**: http://localhost:8003/docs
 
-## 📊 Supabase Database
+### Key Endpoints
 
-**Database Type:** PostgreSQL with Row Level Security (RLS)
+#### Profile Service
+- `POST /extract-profile` - Extract profile from resume
+- `GET /profile/{user_id}` - Get user profile
+- `PUT /profile/{user_id}` - Update user profile
 
-### Key Tables:
-- `profiles` - User profile information extracted from resumes
-- `resume_extractions` - Resume analysis results and AI insights
-- Authentication managed by Supabase Auth
+#### Resume Analyzer  
+- `POST /analyze-resume` - Analyze resume for job matching
+- `GET /analysis/{analysis_id}` - Get analysis results
 
-### Access Database:
-- **Supabase Dashboard:** https://supabase.com/dashboard/project/jwmsgrodliegekbrhvgt
-- **SQL Editor:** Available in Supabase Dashboard
-- **Direct Connection:** Use connection string from project settings
+#### API Gateway
+- `POST /auth/signin` - User authentication
+- `POST /auth/signup` - User registration
+- `GET /health` - Overall system health
 
-## 🔍 Common Issues and Solutions
+## 🚀 Next Steps
 
-### 1. Service Won't Start
-- Check if ports are available
-- Verify environment variables
-- Check Docker logs: `docker-compose logs service-name`
+1. **Complete Setup**: Run `python scripts/setup.py`
+2. **Configure Environment**: Edit `.env` with your API keys
+3. **Start All Services**: Run `./scripts/start-all-services.sh`
+4. **Test Everything**: Run `python test_all_services.py`
+5. **Start Frontend**: Connect your React app to `http://localhost:8000`
 
-### 2. Supabase Connection Issues
-- Verify SUPABASE_URL and SUPABASE_SERVICE_KEY in environment
-- Check service key permissions in Supabase Dashboard
-- Test connection from Supabase SQL Editor
+---
 
-### 3. Groq API Errors
-- Verify GROQ_API_KEY in environment
-- Check API quota and rate limits
-- Review service logs for detailed error messages
+**Need Help?** 
+- Check service logs for detailed error messages
+- Test individual services using their health endpoints
+- Verify all environment variables are correctly configured
+- Run the comprehensive test suite to identify issues
 
-### 4. Resume Parsing Issues
-- Ensure file format is PDF, DOC, or DOCX
-- Check file size (should be under reasonable limits)
-- Verify Groq API is responding
-
-## 🛠️ Development
-
-### Adding New Services
-1. Create service directory in `backend/agents/`
-2. Add Dockerfile and requirements.txt
-3. Update docker-compose.yml
-4. Add routes to API Gateway
-
-### Environment Variables
-- `GROQ_API_KEY` - Required for AI-powered resume parsing and analysis
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_SERVICE_KEY` - Supabase service role key for backend access
-- `SUPABASE_DB_URL` - PostgreSQL connection string for direct DB access
-- `JWT_SECRET` - Required for internal service authentication
-
-### Service Communication
-- **Docker Network:** Services communicate via internal Docker network
-- **API Gateway:** Routes external requests to appropriate microservices  
-- **Database:** All services connect to shared Supabase PostgreSQL instance
-- **Authentication:** Supabase JWT tokens for user authentication
-
-## 📝 API Documentation
-
-For detailed API documentation, start the services and visit:
-- **API Gateway:** http://localhost:8000/docs
-- **Resume Analyzer:** http://localhost:8003/docs  
-- **Profile Service:** http://localhost:8006/docs
-
-## 🔒 Security
-
-- **Supabase Authentication:** Built-in JWT token validation
-- **Row Level Security (RLS):** Database-level access control
-- **Environment Variables:** All sensitive data in environment files
-- **CORS Configuration:** Proper frontend integration security
-- **Input Validation:** Comprehensive request validation and sanitization
-
-## 📈 Monitoring
-
-Monitor service health using:
-- **Health Endpoints:** `/health` on all services  
-- **Docker Status:** `docker-compose ps`
-- **Service Logs:** `docker-compose logs -f [service]`
-- **Supabase Dashboard:** Real-time database and auth monitoring
-- **API Documentation:** Interactive testing via `/docs` endpoints
-
-## 🤝 Contributing
-
-1. Follow the microservices architecture
-2. Add proper error handling
-3. Include comprehensive logging
-4. Update documentation
-5. Test thoroughly before deployment
+**Happy Coding!** 🎉

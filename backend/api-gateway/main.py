@@ -26,12 +26,12 @@ app.add_middleware(
 # Security
 security = HTTPBearer()
 
-# Agent service URLs - Simplified for Supabase architecture
+# Agent service URLs - Local development setup
 AGENT_SERVICES = {
-    "resume-analyzer": os.getenv("RESUME_ANALYZER_URL", "http://resume-analyzer:8003"),
-    "profile-service": os.getenv("PROFILE_SERVICE_URL", "http://profile-service:8006"),
-    "course-generation": os.getenv("COURSE_GENERATION_URL", "http://course-generation:8001"),
-    "interview-coach": os.getenv("INTERVIEW_COACH_URL", "http://interview-coach:8002"),
+    "resume-analyzer": os.getenv("RESUME_ANALYZER_URL", "http://localhost:8003"),
+    "profile-service": os.getenv("PROFILE_SERVICE_URL", "http://localhost:8006"),
+    "course-generation": os.getenv("COURSE_GENERATION_URL", "http://localhost:8001"),
+    "interview-coach": os.getenv("INTERVIEW_COACH_URL", "http://localhost:8002"),
 }
 
 # JWT Configuration

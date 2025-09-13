@@ -9,8 +9,10 @@ import json
 from datetime import datetime
 import logging
 import sys
-sys.path.append('/app/shared')
-from database.supabase_connection import (
+import os
+# Add the backend directory to the path for shared module imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from shared.database.supabase_connection import (
     init_database, close_database, get_user_profile, create_user_profile,
     update_user_profile, save_user_education, save_user_experience,
     save_user_projects, save_user_skills, save_user_certifications,
