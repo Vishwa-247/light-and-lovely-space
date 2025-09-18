@@ -189,7 +189,7 @@ const CourseDetail = () => {
   };
 
   if (isLoading) {
-    return <LoadingOverlay message="Loading course content..." />;
+    return <LoadingOverlay isLoading={true} message="Loading course content..." />;
   }
 
   if (!course) {

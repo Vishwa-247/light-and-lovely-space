@@ -28,6 +28,7 @@ export type ChapterType = {
   title: string;
   content: string;
   order_number: number;
+  estimated_reading_time?: number;
   created_at: string;
   updated_at: string;
 };
@@ -46,6 +47,7 @@ export type McqType = {
   question: string;
   options: string[];
   correct_answer: string;
+  explanation?: string;
   created_at: string;
 };
 
