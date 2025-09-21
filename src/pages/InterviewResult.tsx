@@ -60,14 +60,14 @@ const InterviewResult = () => {
         { time: "05:15", note: "Slight hesitation on technical question", score: 65 }
       ]
     },
-    recommendations: [
-      {
-        type: "course",
-        title: "Advanced React Patterns",
-        reason: "To improve technical depth",
-        link: "/courses"
-      }
-    ]
+        recommendations: [
+          {
+            type: "profile",
+            title: "Complete Profile Builder",
+            reason: "To improve technical depth",
+            link: "/profile-builder" 
+          }
+        ]
   };
 
   const getScoreColor = (score: number) => {

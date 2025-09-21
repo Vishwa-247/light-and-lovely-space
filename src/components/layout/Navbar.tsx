@@ -27,7 +27,7 @@ const Navbar = () => {
     { name: "Home", href: "/" },
     { name: "Resume Analyzer", href: "/resume-analyzer" },
     { name: "DSA Sheet", href: "/dsa-sheet" },
-    { name: "Learn", href: "/course-generator" },
+    { name: "Profile Builder", href: "/profile-builder" },
     { name: "Interview", href: "/mock-interview" },
     { name: "Dashboard", href: "/dashboard" },
   ];

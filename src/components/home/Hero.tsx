@@ -35,14 +35,14 @@ const Hero = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-fade-up" style={{ animationDelay: "450ms" }}>
               <Link 
-                to="/courses" 
+                to="/profile-builder" 
                 className="px-8 py-3 text-white font-medium bg-primary hover:bg-primary/90 rounded-full transition-all duration-300 flex items-center justify-center space-x-2 button-glow"
               >
-                <span>Generate a Course</span>
+                <span>Build Your Profile</span>
                 <ArrowRight size={18} />
               </Link>
               <Link 
-                to="/interview" 
+                to="/mock-interview" 
                 className="px-8 py-3 font-medium border border-primary text-primary hover:bg-primary/10 rounded-full transition-all duration-300 flex items-center justify-center"
               >
                 Try Mock Interview

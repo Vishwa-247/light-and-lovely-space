@@ -6,9 +6,6 @@ import Layout from "@/components/layout/Layout";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
-import CourseGenerator from "@/pages/CourseGenerator";
-import CourseDetail from "@/pages/CourseDetail";
-import Courses from "@/pages/Courses";
 import DSASheet from "@/pages/DSASheet";
 import DSATopic from "@/pages/DSATopic";
 import CompanyProblems from "@/pages/CompanyProblems";
@@ -60,29 +57,8 @@ const App = () => (
                 </ProtectedRoute>
               </Layout>
             } />
-            <Route path="course-generator" element={
-              <Layout>
-                <ProtectedRoute>
-                  <CourseGenerator />
-                </ProtectedRoute>
-              </Layout>
-            } />
-            <Route path="course/:id" element={
-              <Layout>
-                <ProtectedRoute>
-                  <CourseDetail />
-                </ProtectedRoute>
-              </Layout>
-            } />
-            <Route path="courses" element={
-              <Layout>
-                <ProtectedRoute>
-                  <Courses />
-                </ProtectedRoute>
-              </Layout>
-            } />
             <Route 
-              path="mock-interview" 
+              path="mock-interview"
               element={
                 <Layout>
                   <ProtectedRoute>

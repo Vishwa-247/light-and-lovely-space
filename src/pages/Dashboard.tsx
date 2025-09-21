@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Book, Video, Medal, MessageSquare, AlertCircle, Code, Target, CheckCircle } from "lucide-react";
+import { ArrowRight, Video, Medal, MessageSquare, AlertCircle, Code, Target, CheckCircle, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,11 +18,8 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Real courses and interviews data - empty by default, will be populated from backend
-  const displayCourses: any[] = [];
+  // Real interviews data - empty by default, will be populated from backend
   const displayInterviews: any[] = [];
-
-  const recentCourses = displayCourses.slice(0, 3);
   const recentInterviews = displayInterviews.slice(0, 3);
 
   // DSA Analytics calculations
@@ -65,11 +61,11 @@ const Dashboard = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="max-w-md mx-auto">
-          <p className="mb-4">Get started by creating your first learning course or practice interview</p>
+          <p className="mb-4">Get started by building your professional profile or practice interview</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild>
-              <Link to="/course-generator">
-                Create Course <Book className="ml-2 h-4 w-4" />
+              <Link to="/profile-builder">
+                Build Profile <User className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button variant="outline" asChild>
@@ -83,8 +79,7 @@ const Dashboard = () => {
     </Card>
   );
 
-  // Fix: Replace the line with error by checking if both displayCourses and displayInterviews are empty
-  const showWelcomeCard = displayCourses.length === 0 && displayInterviews.length === 0;
+  const showWelcomeCard = displayInterviews.length === 0;
 
   return (
     <Container>
@@ -98,7 +93,7 @@ const Dashboard = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild>
-              <Link to="/course-generator">Create Course</Link>
+              <Link to="/profile-builder">Build Profile</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link to="/mock-interview">AI Interview Coach</Link>
@@ -126,9 +121,8 @@ const Dashboard = () => {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto">
+          <TabsList className="grid grid-cols-3 w-full max-w-2xl mx-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="dsa">DSA Progress</TabsTrigger>
           </TabsList>
@@ -138,13 +132,13 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Completed Courses
+                    Profile Progress
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center">
-                    <Book className="mr-2 h-4 w-4 text-primary" />
-                    <div className="text-2xl font-bold">{displayCourses.length}</div>
+                    <User className="mr-2 h-4 w-4 text-primary" />
+                    <div className="text-2xl font-bold">-</div>
                   </div>
                 </CardContent>
               </Card>
@@ -206,35 +200,27 @@ const Dashboard = () => {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="col-span-1">
                 <CardHeader>
-                  <CardTitle>Recent Courses</CardTitle>
-                  <CardDescription>Your latest learning activities</CardDescription>
+                  <CardTitle>Profile Building</CardTitle>
+                  <CardDescription>Complete your professional profile</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {recentCourses.length > 0 ? (
-                    <div className="space-y-6">
-                      {recentCourses.map((course) => (
-                        <div key={course.id} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{course.title}</span>
-                            <span className="text-sm text-muted-foreground">0%</span>
-                          </div>
-                          <Progress value={0} />
-                        </div>
-                      ))}
-                      <Button variant="outline" size="sm" className="w-full" asChild>
-                        <Link to="/dashboard?tab=courses" onClick={() => setActiveTab("courses")}>
-                          View All Courses
-                        </Link>
-                      </Button>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="mb-4">
+                      <User className="h-12 w-12 mx-auto text-primary mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Build Your Profile</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Create a comprehensive professional profile to get personalized recommendations
+                      </p>
                     </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No courses yet. Create your first course!
-                    </div>
-                  )}
+                    <Button asChild>
+                      <Link to="/profile-builder">
+                        Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -279,91 +265,9 @@ const Dashboard = () => {
                   )}
                 </CardContent>
               </Card>
-
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>DSA Progress</CardTitle>
-                  <CardDescription>Your coding practice activity</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {recentDSAActivity.length > 0 ? (
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Overall Progress</span>
-                          <span className="text-sm text-muted-foreground">{dsaProgressPercentage}%</span>
-                        </div>
-                        <Progress value={dsaProgressPercentage} />
-                      </div>
-                      {recentDSAActivity.map((activity, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{activity.name}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {activity.solved}/{activity.total}
-                            </span>
-                          </div>
-                          <Progress value={activity.progress} />
-                        </div>
-                      ))}
-                      <Button variant="outline" size="sm" className="w-full" asChild>
-                        <Link to="/dashboard?tab=dsa" onClick={() => setActiveTab("dsa")}>
-                          View DSA Progress
-                        </Link>
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      No DSA problems solved yet. Start practicing!
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </div>
 
             {showWelcomeCard && <WelcomeCard />}
-          </TabsContent>
-
-          <TabsContent value="courses">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {displayCourses.map((course) => (
-                <Card key={course.id}>
-                  <CardHeader>
-                    <CardTitle>{course.title}</CardTitle>
-                    <CardDescription>
-                      {course.purpose.replace('_', ' ')} • {course.difficulty}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Progress</span>
-                        <span className="text-sm font-medium">0%</span>
-                      </div>
-                      <Progress value={0} />
-                    </div>
-                    <Button variant="ghost" size="sm" className="mt-4 w-full" asChild>
-                      <Link to={`/course/${course.id}`}>
-                        Continue Learning <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              <Card className="border-dashed border-2 flex flex-col items-center justify-center p-6">
-                <Book className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Generate New Course</h3>
-                <p className="text-sm text-muted-foreground text-center mb-4">
-                  Create a custom course based on your learning goals
-                </p>
-                <Button asChild>
-                  <Link to="/course-generator">
-                    Start Now <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </Card>
-            </div>
           </TabsContent>
 
           <TabsContent value="interviews">
@@ -396,7 +300,7 @@ const Dashboard = () => {
                     </div>
                     <Button variant="ghost" size="sm" className="w-full" asChild>
                       <Link to={`/interview-result/${interview.id}`}>
-                        View Results <ArrowRight className="ml-2 h-4 w-4" />
+                        View Details <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>
                   </CardContent>
@@ -405,117 +309,69 @@ const Dashboard = () => {
               
               <Card className="border-dashed border-2 flex flex-col items-center justify-center p-6">
                 <Video className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">AI Interview Agents</h3>
+                <h3 className="text-lg font-medium mb-2">New Mock Interview</h3>
                 <p className="text-sm text-muted-foreground text-center mb-4">
-                  Choose from HR, Technical, or Aptitude interview coaches
+                  Practice with AI-powered interview coaching
                 </p>
-                <div className="space-y-2 w-full">
-                  <Button asChild size="sm" className="w-full">
-                    <Link to="/mock-interview?type=technical">
-                      Technical Interview
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link to="/mock-interview?type=hr">
-                      HR Interview
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link to="/mock-interview?type=aptitude">
-                      Aptitude Test
-                    </Link>
-                  </Button>
-                </div>
+                <Button asChild>
+                  <Link to="/mock-interview">
+                    Start Now <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="dsa">
             <div className="space-y-6">
-              {/* DSA Overview Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Total Problems
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Target className="mr-2 h-4 w-4 text-primary" />
-                      <div className="text-2xl font-bold">{totalAllDSAProblems}</div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>DSA Progress Overview</CardTitle>
+                  <CardDescription>Your Data Structures and Algorithms practice statistics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Overall Progress</span>
+                      <span className="text-sm text-muted-foreground">{dsaProgressPercentage}%</span>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Solved Problems
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                      <div className="text-2xl font-bold">{totalSolvedDSAProblems}</div>
+                    <Progress value={dsaProgressPercentage} />
+                    <div className="grid grid-cols-2 gap-4 pt-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{totalSolvedDSAProblems}</div>
+                        <div className="text-sm text-muted-foreground">Problems Solved</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-muted-foreground">{totalAllDSAProblems}</div>
+                        <div className="text-sm text-muted-foreground">Total Problems</div>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Progress Rate
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Medal className="mr-2 h-4 w-4 text-primary" />
-                      <div className="text-2xl font-bold">{dsaProgressPercentage}%</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Topics Covered
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center">
-                      <Book className="mr-2 h-4 w-4 text-primary" />
-                      <div className="text-2xl font-bold">{dsaTopics.length}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* DSA Topics Progress */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>DSA Topics Progress</CardTitle>
-                    <CardDescription>Track your progress by data structures and algorithms</CardDescription>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>Your latest DSA practice sessions</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {dsaTopics.slice(0, 5).map((topic) => (
-                        <div key={topic.id} className="space-y-2">
+                      {recentDSAActivity.map((activity, index) => (
+                        <div key={index} className="space-y-2">
                           <div className="flex justify-between">
-                            <span className="font-medium">{topic.title}</span>
+                            <span className="font-medium">{activity.name}</span>
                             <span className="text-sm text-muted-foreground">
-                              {topic.solvedProblems}/{topic.totalProblems}
+                              {activity.solved}/{activity.total}
                             </span>
                           </div>
-                          <Progress 
-                            value={topic.totalProblems > 0 ? (topic.solvedProblems / topic.totalProblems) * 100 : 0} 
-                          />
+                          <Progress value={activity.progress} />
                         </div>
                       ))}
                       <Button variant="outline" size="sm" className="w-full" asChild>
                         <Link to="/dsa-sheet">
-                          View All Topics <ArrowRight className="ml-2 h-4 w-4" />
+                          Continue Practice <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
                       </Button>
                     </div>
@@ -524,63 +380,25 @@ const Dashboard = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Company Problems</CardTitle>
-                    <CardDescription>Practice problems from top tech companies</CardDescription>
+                    <CardTitle>Quick Actions</CardTitle>
+                    <CardDescription>Jump into your DSA practice</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {companies.slice(0, 5).map((company) => (
-                        <div key={company.id} className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{company.title}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {company.solvedProblems}/{company.totalProblems}
-                            </span>
-                          </div>
-                          <Progress 
-                            value={company.totalProblems > 0 ? (company.solvedProblems / company.totalProblems) * 100 : 0} 
-                          />
-                        </div>
-                      ))}
-                      <Button variant="outline" size="sm" className="w-full" asChild>
-                        <Link to="/company-problems">
-                          View All Companies <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
+                  <CardContent className="space-y-4">
+                    <Button className="w-full" asChild>
+                      <Link to="/dsa-sheet">
+                        <Code className="mr-2 h-4 w-4" />
+                        Practice DSA Problems
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link to="/dsa-sheet/company/google">
+                        <Target className="mr-2 h-4 w-4" />
+                        Company Specific Problems
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Quick Actions */}
-              <Card className="border-dashed border-2">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Start practicing DSA problems</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button asChild>
-                      <Link to="/dsa-sheet">
-                        <Code className="mr-2 h-4 w-4" />
-                        Practice by Topics
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link to="/company-problems">
-                        <Target className="mr-2 h-4 w-4" />
-                        Company Problems
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link to="/dsa-sheet?random=true">
-                        <Medal className="mr-2 h-4 w-4" />
-                        Random Problem
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
         </Tabs>

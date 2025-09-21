@@ -9,10 +9,10 @@ const Footer = () => {
     {
       title: "Product",
       links: [
-        { name: "Courses", href: "/courses" },
-        { name: "Mock Interviews", href: "/interview" },
-        { name: "Video Analysis", href: "/video-analysis" },
-        { name: "Pricing", href: "/pricing" },
+        { name: "Profile Builder", href: "/profile-builder" },
+        { name: "Mock Interviews", href: "/mock-interview" },
+        { name: "DSA Practice", href: "/dsa-sheet" },
+        { name: "Resume Analyzer", href: "/resume-analyzer" },
       ],
     },
     {
